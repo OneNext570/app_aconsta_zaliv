@@ -16,10 +16,48 @@
         label { font-size: 0.875rem; font-weight: 600; color: #374151; }
         .section-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem; color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; }
         .save-indicator { position: fixed; top: 10px; right: 10px; font-size: 0.7rem; color: #10b981; display: none; z-index: 50; }
+        
+        .multi-select-btn {
+            width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; margin-top: 4px;
+            text-align: left; background: white; font-size: 0.875rem; color: #4b5563; min-height: 40px;
+        }
+        .options-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+            align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-content {
+            background: white; width: 100%; max-width: 400px; max-height: 80vh; overflow-y: auto;
+            border-radius: 12px; padding: 1.5rem; position: relative;
+        }
+        .option-item {
+            padding: 10px; border: 1px solid #e5e7eb; margin-bottom: 5px; border-radius: 6px; cursor: pointer;
+        }
+        .option-item.selected {
+            background-color: #3b82f6; color: white; border-color: #2563eb;
+        }
+        .extra-construct-item {
+            border-left: 2px dashed #9ca3af; padding-left: 0.75rem; margin-top: 1rem; position: relative;
+        }
     </style>
 </head>
-<body class="p-4 pb-24">
+<body class="p-4 pb-32">
     <div id="saveIndicator" class="save-indicator">Данные сохранены ✓</div>
+
+    <!-- Модалка для выбора вариантов -->
+    <div id="optionsModal" class="options-modal">
+        <div class="modal-content shadow-2xl">
+            <h3 id="modalTitle" class="text-lg font-bold mb-4">Выберите варианты</h3>
+            <div id="optionsList" class="space-y-1 mb-4"></div>
+            <div class="mb-4">
+                <label class="block text-xs mb-1">Добавить вручную:</label>
+                <input type="text" id="manualInput" placeholder="Введите свой вариант...">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeModal()" class="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Закрыть</button>
+                <button onclick="applySelection()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">Применить</button>
+            </div>
+        </div>
+    </div>
 
     <div class="max-w-md mx-auto">
         <h1 class="text-2xl font-bold text-center mb-6 text-blue-700">Акт осмотра (Черновик)</h1>
@@ -85,7 +123,6 @@
             </div>
         </div>
 
-        <!-- Динамические секции -->
         <div id="roomsContainer"></div>
         <div id="itemsContainer"></div>
 
@@ -108,15 +145,108 @@
     <script>
         let roomCount = 0;
         let itemCount = 0;
+        let activeTargetId = null;
+        let currentOptions = [];
+        let extraCount = 0;
+
+        const DATA_LISTS = {
+            ceiling: ["Натяжной потолок", "Подвесной потолок ГКЛ", "Многоуровневый натяжной потолок", "Листы ГКЛ", "В/эмульсионная окраска", "шпатлевка", "штукатурка", "Реечный потолок (алюминий)", "Реечный потолок (ПВХ)", "плинтус пенопластовый/полиуретановый", "карнизы декоративные", "лепнина"],
+            walls: ["Обои виниловые на флизелиновой основе", "Обои бумажные на флизелиновой основе", "Обои бумажные", "Обои флизелиновые", "В/эмульсионная окраска", "шпатлевка", "штукатурка", "Декоративная штукатурка", "Стеновые панели ПВХ", "Флизелин малярный под покраску"],
+            floor: ["Ламинат", "паркет штучный", "Паркет дубовый", "Паркетная доска", "Паркет \"Английская елка\"", "паркет \"Французская ёлка\"", "Инженерная доска", "Кварцвинил", "подложка листовая", "подложка", "подложка рулонная", "фанера", "стяжка цементно-песчаная", "наливной пол", "линолеум", "плинтус ПВХ", "плинтус МДФ", "плинтус пенопластовый/полиуретановый", "плинтус деревянный", "лаги"],
+            dmg: ["вздутие", "деформация", "отслоение", "образование плесени", "подтеки", "следы залития", "глубокая вытяжка полотна", "разрыв полотна", "деформация листов ГКЛ"],
+            req: ["Замена отделочного покрытия", "антигрибковая обработка"]
+        };
+
+        function openModal(targetId, type, title) {
+            activeTargetId = targetId;
+            currentOptions = DATA_LISTS[type];
+            document.getElementById('modalTitle').innerText = title;
+            const listDiv = document.getElementById('optionsList');
+            listDiv.innerHTML = '';
+            
+            const currentVal = document.getElementById(targetId).value;
+            const selectedSet = new Set(currentVal.split(', ').map(s => s.trim()).filter(s => s !== ''));
+
+            currentOptions.forEach(opt => {
+                const item = document.createElement('div');
+                item.className = `option-item ${selectedSet.has(opt) ? 'selected' : ''}`;
+                item.innerText = opt;
+                item.onclick = () => item.classList.toggle('selected');
+                listDiv.appendChild(item);
+            });
+
+            document.getElementById('manualInput').value = '';
+            document.getElementById('optionsModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('optionsModal').style.display = 'none';
+        }
+
+        function applySelection() {
+            const selected = Array.from(document.querySelectorAll('.option-item.selected')).map(el => el.innerText);
+            const manual = document.getElementById('manualInput').value.trim();
+            if (manual) selected.push(manual);
+            
+            document.getElementById(activeTargetId).value = selected.join(', ');
+            closeModal();
+            saveToLocalStorage();
+        }
+
+        function createConstructBlock(roomId, typeLabel, typeKey, data = null) {
+            extraCount++;
+            const id = extraCount;
+            const container = document.createElement('div');
+            container.className = 'extra-construct-item';
+            container.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-0 right-0 text-gray-400 hover:text-red-500 text-sm">удалить</button>
+                <label>${typeLabel} (доп.)</label>
+                <input type="text" id="ex_${id}" class="ex-val auto-save hidden" data-type-label="${typeLabel}">
+                <button onclick="openModal('ex_${id}', '${typeKey}', 'Выбрать материал')" class="multi-select-btn" id="btn_ex_${id}">Выбрать отделку...</button>
+                <div class="mt-1 flex items-center gap-2">
+                    <span class="text-xs font-bold whitespace-nowrap">S отд.:</span>
+                    <input type="text" id="ex_s_${id}" class="ex-s auto-save text-xs" style="margin-top:0" placeholder="м²">
+                </div>
+                <input type="text" id="ex_dmg_${id}" class="ex-dmg auto-save hidden">
+                <button onclick="openModal('ex_dmg_${id}', 'dmg', 'Повреждения')" class="multi-select-btn mt-1" id="btn_ex_dmg_${id}">Повреждения...</button>
+                <input type="text" id="ex_req_${id}" class="ex-req auto-save hidden">
+                <button onclick="openModal('ex_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_ex_req_${id}">Работы...</button>
+            `;
+
+            const updateBtn = (inputIdx, btnIdx) => {
+                const inp = document.getElementById(inputIdx);
+                const btn = document.getElementById(btnIdx);
+                const checker = setInterval(() => {
+                    if (!document.getElementById(inputIdx)) { clearInterval(checker); return; }
+                    btn.innerText = inp.value || "Выбрать...";
+                    btn.classList.toggle('text-blue-600', !!inp.value);
+                }, 500);
+            };
+
+            setTimeout(() => {
+                updateBtn(`ex_${id}`, `btn_ex_${id}`);
+                updateBtn(`ex_dmg_${id}`, `btn_ex_dmg_${id}`);
+                updateBtn(`ex_req_${id}`, `btn_ex_req_${id}`);
+                if (data) {
+                    document.getElementById(`ex_${id}`).value = data.val || '';
+                    document.getElementById(`ex_s_${id}`).value = data.s || '';
+                    document.getElementById(`ex_dmg_${id}`).value = data.dmg || '';
+                    document.getElementById(`ex_req_${id}`).value = data.req || '';
+                }
+            }, 50);
+
+            return container;
+        }
 
         function addRoom(data = null) {
             roomCount++;
+            const id = roomCount;
             const div = document.createElement('div');
             div.className = 'card border-l-4 border-green-500 relative room-card';
-            div.id = `room_${roomCount}`;
+            div.id = `room_card_${id}`;
             div.innerHTML = `
                 <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
-                <div class="section-title text-green-700">Помещение №${roomCount}</div>
+                <div class="section-title text-green-700">Помещение №${id}</div>
                 <div class="space-y-3">
                     <div class="grid grid-cols-3 gap-2">
                         <div class="col-span-1"><label>Назв.</label><input type="text" class="r-name auto-save" placeholder="Кухня"></div>
@@ -124,41 +254,104 @@
                         <div><label>H (м)</label><input type="text" class="r-height auto-save"></div>
                     </div>
                     <div>
-                        <label>Потолок (отделка)</label>
-                        <input type="text" class="r-ceiling auto-save" placeholder="Натяжной, 10 м2">
-                        <textarea class="r-ceiling-dmg auto-save" placeholder="Повреждения потолка..."></textarea>
-                        <textarea class="r-ceiling-req auto-save" placeholder="Требуется..."></textarea>
+                        <label>Потолок</label>
+                        <input type="text" id="r_ceil_${id}" class="r-ceiling auto-save hidden">
+                        <button onclick="openModal('r_ceil_${id}', 'ceiling', 'Отделка потолка')" class="multi-select-btn" id="btn_ceil_${id}">Выбрать отделку...</button>
+                        <div class="mt-1 flex items-center gap-2">
+                            <span class="text-xs font-bold whitespace-nowrap">S отд. потолка:</span>
+                            <input type="text" id="r_ceil_s_${id}" class="r-ceiling-s auto-save text-xs" style="margin-top:0" placeholder="м²">
+                        </div>
+                        <input type="text" id="r_ceil_dmg_${id}" class="r-ceiling-dmg auto-save hidden">
+                        <button onclick="openModal('r_ceil_dmg_${id}', 'dmg', 'Повреждения потолка')" class="multi-select-btn mt-1" id="btn_ceil_dmg_${id}">Повреждения...</button>
+                        <input type="text" id="r_ceil_req_${id}" class="r-ceiling-req auto-save hidden">
+                        <button onclick="openModal('r_ceil_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_ceil_req_${id}">Работы...</button>
                     </div>
-                    <div>
+                    <div class="pt-2 border-t">
                         <label>Стены</label>
-                        <input type="text" class="r-walls auto-save" placeholder="Обои">
-                        <textarea class="r-walls-dmg auto-save" placeholder="Повреждения стен..."></textarea>
-                        <textarea class="r-walls-req auto-save" placeholder="Требуется..."></textarea>
+                        <input type="text" id="r_walls_${id}" class="r-walls auto-save hidden">
+                        <button onclick="openModal('r_walls_${id}', 'walls', 'Отделка стен')" class="multi-select-btn" id="btn_walls_${id}">Выбрать отделку...</button>
+                        <div class="mt-1 flex items-center gap-2">
+                            <span class="text-xs font-bold whitespace-nowrap">S отд. стен:</span>
+                            <input type="text" id="r_walls_s_${id}" class="r-walls-s auto-save text-xs" style="margin-top:0" placeholder="м²">
+                        </div>
+                        <input type="text" id="r_walls_dmg_${id}" class="r-walls-dmg auto-save hidden">
+                        <button onclick="openModal('r_walls_dmg_${id}', 'dmg', 'Повреждения стен')" class="multi-select-btn mt-1" id="btn_walls_dmg_${id}">Повреждения...</button>
+                        <input type="text" id="r_walls_req_${id}" class="r-walls-req auto-save hidden">
+                        <button onclick="openModal('r_walls_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_walls_req_${id}">Работы...</button>
                     </div>
-                    <div>
+                    <div class="pt-2 border-t">
                         <label>Пол</label>
-                        <input type="text" class="r-floor auto-save" placeholder="Ламинат">
-                        <textarea class="r-floor-dmg auto-save" placeholder="Повреждения пола..."></textarea>
-                        <textarea class="r-floor-req auto-save" placeholder="Требуется..."></textarea>
+                        <input type="text" id="r_floor_${id}" class="r-floor auto-save hidden">
+                        <button onclick="openModal('r_floor_${id}', 'floor', 'Отделка пола')" class="multi-select-btn" id="btn_floor_${id}">Выбрать отделку...</button>
+                        <div class="mt-1 flex items-center gap-2">
+                            <span class="text-xs font-bold whitespace-nowrap">S отд. пола:</span>
+                            <input type="text" id="r_floor_s_${id}" class="r-floor-s auto-save text-xs" style="margin-top:0" placeholder="м²">
+                        </div>
+                        <input type="text" id="r_floor_dmg_${id}" class="r-floor-dmg auto-save hidden">
+                        <button onclick="openModal('r_floor_dmg_${id}', 'dmg', 'Повреждения пола')" class="multi-select-btn mt-1" id="btn_floor_dmg_${id}">Повреждения...</button>
+                        <input type="text" id="r_floor_req_${id}" class="r-floor-req auto-save hidden">
+                        <button onclick="openModal('r_floor_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_floor_req_${id}">Работы...</button>
+                    </div>
+                    <div class="extras-list pt-2 border-t" id="extras_${id}"></div>
+                    <button onclick="showExtraMenu(${id})" class="w-full mt-2 border border-gray-300 py-1 text-xs rounded bg-gray-50 hover:bg-gray-100">+ Добавить элемент отделки</button>
+                    <div id="extra_menu_${id}" class="hidden mt-2 grid grid-cols-3 gap-1">
+                        <button onclick="addExtraToRoom(${id}, 'Потолок', 'ceiling')" class="bg-gray-200 text-[10px] py-1 rounded">Потолок</button>
+                        <button onclick="addExtraToRoom(${id}, 'Стены', 'walls')" class="bg-gray-200 text-[10px] py-1 rounded">Стены</button>
+                        <button onclick="addExtraToRoom(${id}, 'Пол', 'floor')" class="bg-gray-200 text-[10px] py-1 rounded">Пол</button>
                     </div>
                 </div>
             `;
             document.getElementById('roomsContainer').appendChild(div);
 
+            const updateBtn = (inputIdx, btnIdx) => {
+                const inp = document.getElementById(inputIdx);
+                const btn = document.getElementById(btnIdx);
+                const checker = setInterval(() => {
+                    if (!document.getElementById(inputIdx)) { clearInterval(checker); return; }
+                    btn.innerText = inp.value || "Выбрать...";
+                    btn.classList.toggle('text-blue-600', !!inp.value);
+                }, 500);
+            };
+            
+            ['ceil','ceil_dmg','ceil_req','walls','walls_dmg','walls_req','floor','floor_dmg','floor_req'].forEach(key => {
+                updateBtn(`r_${key}_${id}`, `btn_${key}_${id}`);
+            });
+
             if (data) {
                 div.querySelector('.r-name').value = data.name || '';
                 div.querySelector('.r-area').value = data.area || '';
                 div.querySelector('.r-height').value = data.height || '';
-                div.querySelector('.r-ceiling').value = data.ceiling || '';
-                div.querySelector('.r-ceiling-dmg').value = data.ceilingDmg || '';
-                div.querySelector('.r-ceiling-req').value = data.ceilingReq || '';
-                div.querySelector('.r-walls').value = data.walls || '';
-                div.querySelector('.r-walls-dmg').value = data.wallsDmg || '';
-                div.querySelector('.r-walls-req').value = data.wallsReq || '';
-                div.querySelector('.r-floor').value = data.floor || '';
-                div.querySelector('.r-floor-dmg').value = data.floorDmg || '';
-                div.querySelector('.r-floor-req').value = data.floorReq || '';
+                document.getElementById(`r_ceil_${id}`).value = data.ceiling || '';
+                document.getElementById(`r_ceil_s_${id}`).value = data.ceilingS || '';
+                document.getElementById(`r_ceil_dmg_${id}`).value = data.ceilingDmg || '';
+                document.getElementById(`r_ceil_req_${id}`).value = data.ceilingReq || '';
+                document.getElementById(`r_walls_${id}`).value = data.walls || '';
+                document.getElementById(`r_walls_s_${id}`).value = data.wallsS || '';
+                document.getElementById(`r_walls_dmg_${id}`).value = data.wallsDmg || '';
+                document.getElementById(`r_walls_req_${id}`).value = data.wallsReq || '';
+                document.getElementById(`r_floor_${id}`).value = data.floor || '';
+                document.getElementById(`r_floor_s_${id}`).value = data.floorS || '';
+                document.getElementById(`r_floor_dmg_${id}`).value = data.floorDmg || '';
+                document.getElementById(`r_floor_req_${id}`).value = data.floorReq || '';
+                if (data.extras) {
+                    data.extras.forEach(ex => {
+                        const key = ex.label === 'Потолок' ? 'ceiling' : ex.label === 'Стены' ? 'walls' : 'floor';
+                        const block = createConstructBlock(id, ex.label, key, ex);
+                        document.getElementById(`extras_${id}`).appendChild(block);
+                    });
+                }
             }
+        }
+
+        function showExtraMenu(id) {
+            const menu = document.getElementById(`extra_menu_${id}`);
+            menu.classList.toggle('hidden');
+        }
+
+        function addExtraToRoom(roomId, label, key) {
+            const block = createConstructBlock(roomId, label, key);
+            document.getElementById(`extras_${roomId}`).appendChild(block);
+            document.getElementById(`extra_menu_${roomId}`).classList.add('hidden');
         }
 
         function addItem(data = null) {
@@ -174,18 +367,11 @@
                         <label>Поврежденное имущество</label>
                         <input type="text" class="i-name auto-save" placeholder="Телевизор Samsung">
                     </div>
-                    <div>
-                        <label>Описание повреждений</label>
-                        <textarea class="i-dmg auto-save"></textarea>
-                    </div>
-                    <div>
-                        <label>Требуется</label>
-                        <textarea class="i-req auto-save"></textarea>
-                    </div>
+                    <div><label>Описание повреждений</label><textarea class="i-dmg auto-save"></textarea></div>
+                    <div><label>Требуется</label><textarea class="i-req auto-save"></textarea></div>
                 </div>
             `;
             document.getElementById('itemsContainer').appendChild(div);
-
             if (data) {
                 div.querySelector('.i-name').value = data.name || '';
                 div.querySelector('.i-dmg').value = data.dmg || '';
@@ -193,7 +379,6 @@
             }
         }
 
-        // Логика автосохранения
         function saveToLocalStorage() {
             const formData = {
                 actNumber: document.getElementById('actNumber').value,
@@ -211,20 +396,37 @@
             };
 
             document.querySelectorAll('.room-card').forEach(card => {
-                formData.rooms.push({
+                const id = card.id.split('_').pop();
+                const roomData = {
                     name: card.querySelector('.r-name').value,
                     area: card.querySelector('.r-area').value,
                     height: card.querySelector('.r-height').value,
-                    ceiling: card.querySelector('.r-ceiling').value,
-                    ceilingDmg: card.querySelector('.r-ceiling-dmg').value,
-                    ceilingReq: card.querySelector('.r-ceiling-req').value,
-                    walls: card.querySelector('.r-walls').value,
-                    wallsDmg: card.querySelector('.r-walls-dmg').value,
-                    wallsReq: card.querySelector('.r-walls-req').value,
-                    floor: card.querySelector('.r-floor').value,
-                    floorDmg: card.querySelector('.r-floor-dmg').value,
-                    floorReq: card.querySelector('.r-floor-req').value
+                    ceiling: document.getElementById(`r_ceil_${id}`).value,
+                    ceilingS: document.getElementById(`r_ceil_s_${id}`).value,
+                    ceilingDmg: document.getElementById(`r_ceil_dmg_${id}`).value,
+                    ceilingReq: document.getElementById(`r_ceil_req_${id}`).value,
+                    walls: document.getElementById(`r_walls_${id}`).value,
+                    wallsS: document.getElementById(`r_walls_s_${id}`).value,
+                    wallsDmg: document.getElementById(`r_walls_dmg_${id}`).value,
+                    wallsReq: document.getElementById(`r_walls_req_${id}`).value,
+                    floor: document.getElementById(`r_floor_${id}`).value,
+                    floorS: document.getElementById(`r_floor_s_${id}`).value,
+                    floorDmg: document.getElementById(`r_floor_dmg_${id}`).value,
+                    floorReq: document.getElementById(`r_floor_req_${id}`).value,
+                    extras: []
+                };
+
+                card.querySelectorAll('.extra-construct-item').forEach(ex => {
+                    roomData.extras.push({
+                        label: ex.querySelector('.ex-val').getAttribute('data-type-label'),
+                        val: ex.querySelector('.ex-val').value,
+                        s: ex.querySelector('.ex-s').value,
+                        dmg: ex.querySelector('.ex-dmg').value,
+                        req: ex.querySelector('.ex-req').value
+                    });
                 });
+
+                formData.rooms.push(roomData);
             });
 
             document.querySelectorAll('.item-card').forEach(card => {
@@ -236,8 +438,6 @@
             });
 
             localStorage.setItem('damage_act_draft', JSON.stringify(formData));
-            
-            // Показываем индикатор
             const indicator = document.getElementById('saveIndicator');
             indicator.style.display = 'block';
             setTimeout(() => indicator.style.display = 'none', 1000);
@@ -246,10 +446,7 @@
         function loadFromLocalStorage() {
             const saved = localStorage.getItem('damage_act_draft');
             if (!saved) return;
-
             const data = JSON.parse(saved);
-            
-            // Восстановление базовых полей
             document.getElementById('actNumber').value = data.actNumber || '';
             document.getElementById('actDateTime').value = data.actDateTime || '';
             document.getElementById('address').value = data.address || '';
@@ -260,30 +457,27 @@
             document.getElementById('expertName').value = data.expertName || 'Инсафутдинов А.Р.';
             document.getElementById('ownerName').value = data.ownerName || '';
             document.getElementById('others').value = data.others || '';
-
-            // Восстановление карточек
             if (data.rooms) data.rooms.forEach(r => addRoom(r));
             if (data.items) data.items.forEach(i => addItem(i));
         }
 
-        // Запуск сохранения при изменениях
-        setInterval(saveToLocalStorage, 2000); 
+        setInterval(saveToLocalStorage, 10000); 
         window.onload = loadFromLocalStorage;
 
         async function generateWord() {
             const docxLib = window.docx;
-            if (!docxLib) {
-                alert("Библиотека еще загружается...");
-                return;
-            }
+            if (!docxLib) { alert("Загрузка библиотеки Word..."); return; }
 
             const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docxLib;
 
+            // Константы шрифтов и стилей
             const TNR_7 = { font: "Times New Roman", size: 14 }; 
             const TNR_10 = { font: "Times New Roman", size: 20 }; 
+            const TNR_10_ITALIC = { font: "Times New Roman", size: 20, italic: true };
             const TNR_10_BOLD = { font: "Times New Roman", size: 20, bold: true };
             const TNR_12 = { font: "Times New Roman", size: 24 }; 
             const TNR_12_BOLD = { font: "Times New Roman", size: 24, bold: true };
+            const TNR_12_ITALIC = { font: "Times New Roman", size: 24, italic: true };
             const TNR_14_BOLD = { font: "Times New Roman", size: 28, bold: true };
 
             const introText = "Настоящий акт составлен по результатам визуального осмотра объекта оценки, без установления скрытых дефектов, детальных обмеров и технической инвентаризации объекта оценки. Каждый из участников осмотра имеет право: задавать эксперту вопросы, требовать пояснений по поводу применяемых во время осмотра технических и профессиональных терминов и методов осмотра; собственноручно вносить заявления и замечания в акт осмотра, а также приобщать заявления и замечания к акту осмотра, составленные на отдельных листах. Настоящий Акт составлен с учетом требований Федерального Закона «Об оценочной деятельности в Российской Федерации» № 135-ФЗ от 25 июля 1998 года, требований Стандартов оценки, обязательных к применению субъектами оценочной деятельности. Утвержденного Постановлением Правительства РФ от 06 июля 2001 года №519 и Федерального закона об оценочной деятельности в РФ от 29 июля 1998 года № 135-ФЗ, в соответствии с требованиями Федерального закона от 29 июля 1998 г. № 135-Ф3 «Об оценочной деятельности в Российской Федерации (в редакции от 14 ноября 2002 г.) и «Стандартов оценки, обязательных к применению субъектами оценочной деятельности в Российской Федерации», утвержденных постановлением Правительства РФ № 519 от 6 июля 2001 г. Федерального закона «О внесении изменений в ФЗ «Об оценочной деятельности в Российской Федерации» от 14 июля 2006 года. Утвержденного федерального стандарта оценки № 10040 Министерством экономического развития и торговли Российской Федерации от 20 июля 2007 г. № 256 Зарегистрированного в Минюсте РФ 22 августа 2007 г. № 10040, в соответствии с пунктом 5.2.5 Положения о Министерстве экономического развития и торговли Российской Федерации, утвержденного постановлением Правительства Российской Федерации от 27 августа 2004 года № 443 (Собрание законодательных актов Российской Федерации, 2004, № 36, ст. 3670; 2005, № 22, ст. 2121; 2006, № 11, ст. 1182; № 16, ст. 1743, ст. 1744; № 18, ст. 2005; №22, ст. 2333; № 32, ст. 3569, ст. 3578; 2007, № 22, ст.2642).";
@@ -294,108 +488,105 @@
                     alignment: AlignmentType.CENTER,
                     spacing: { after: 150 }
                 }),
-                
-                new Paragraph({
-                    children: [new TextRun({ text: introText, ...TNR_7 })],
-                    alignment: AlignmentType.BOTH,
-                    spacing: { after: 300 }
-                }),
-                
+                new Paragraph({ children: [new TextRun({ text: introText, ...TNR_7 })], alignment: AlignmentType.BOTH, spacing: { after: 300 } }),
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
                     borders: { top: {style: BorderStyle.NONE}, bottom: {style: BorderStyle.NONE}, left: {style: BorderStyle.NONE}, right: {style: BorderStyle.NONE}, insideHorizontal: {style: BorderStyle.NONE}, insideVertical: {style: BorderStyle.NONE}},
                     rows: [
-                        new TableRow({
-                            children: [
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата и время осмотра: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('actDateTime').value.replace('T', ' '), ...TNR_10 })] })] }),
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата происшествия: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('incidentDate').value, ...TNR_10 })] })] }),
-                            ]
-                        }),
-                        new TableRow({
-                            children: [
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Тип помещения: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('roomType').value, ...TNR_10 })] })] }),
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Площадь помещ: ", ...TNR_10_BOLD }), new TextRun({ text: (document.getElementById('totalArea').value || "____") + " м2", ...TNR_10 })] })] }),
-                            ]
-                        }),
-                        new TableRow({
-                            children: [
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Адрес объекта: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('address').value, ...TNR_10 })] })] }),
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Год посл. ремонта: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('lastRepairYear').value, ...TNR_10 })] })] }),
-                            ]
-                        })
+                        new TableRow({ children: [
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата и время осмотра: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('actDateTime').value.replace('T', ' '), ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата происшествия: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('incidentDate').value, ...TNR_10 })] })] }),
+                        ]}),
+                        new TableRow({ children: [
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Тип помещения: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('roomType').value, ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Площадь помещ: ", ...TNR_10_BOLD }), new TextRun({ text: (document.getElementById('totalArea').value || "____") + " м2", ...TNR_10 })] })] }),
+                        ]}),
+                        new TableRow({ children: [
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Адрес объекта: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('address').value, ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Год посл. ремонта: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('lastRepairYear').value, ...TNR_10 })] })] }),
+                        ]})
                     ]
                 }),
-
                 new Paragraph({ text: "", spacing: { before: 200 } }),
                 new Paragraph({ children: [new TextRun({ text: "Участники осмотра:", ...TNR_10_BOLD, underline: {} })] }),
-                
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Эксперты: ${document.getElementById('expertName').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Собственник/заказчик/арендатор: ${document.getElementById('ownerName').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Другие заинтересованные лица: ${document.getElementById('others').value} ________________ подпись`, ...TNR_10 })] }),
-                
                 new Paragraph({ text: "", spacing: { before: 200 } }),
             ];
 
+            const addPartToChildren = (label, val, sVal, dmg, req) => {
+                const sStr = sVal ? ` (S= ${sVal} м2)` : "";
+                children.push(new Paragraph({ children: [new TextRun({ text: label + ": ", ...TNR_12_BOLD }), new TextRun({ text: (val || "не указано") + sStr, ...TNR_12 })] }));
+                children.push(new Paragraph({ children: [new TextRun({ text: `Описание повреждений: ${dmg || "не обнаружено"}`, ...TNR_12 })] }));
+                children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${req || "не требуется"}`, ...TNR_12 })] }));
+            };
+
             document.querySelectorAll('.room-card').forEach(card => {
-                const name = card.querySelector('.r-name').value;
-                const area = card.querySelector('.r-area').value;
-                const height = card.querySelector('.r-height').value;
-                
+                const id = card.id.split('_').pop();
                 children.push(new Paragraph({ 
                     alignment: AlignmentType.CENTER,
-                    children: [new TextRun({ text: `Помещение: ${name || '___'}, S= ${area || '___'} м2, H= ${height || '___'} м`, ...TNR_14_BOLD })],
+                    children: [new TextRun({ text: `Помещение: ${card.querySelector('.r-name').value || '___'}, S= ${card.querySelector('.r-area').value || '___'} м2, H= ${card.querySelector('.r-height').value || '___'} м`, ...TNR_14_BOLD })],
                     spacing: { before: 200, after: 120 }
                 }));
                 
-                const addPart = (label, val, dmg, req) => {
-                    children.push(new Paragraph({ children: [new TextRun({ text: label + ": ", ...TNR_12_BOLD }), new TextRun({ text: val, ...TNR_12 })] }));
-                    children.push(new Paragraph({ children: [new TextRun({ text: `Описание повреждений: ${dmg}`, ...TNR_12 })] }));
-                    children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${req}`, ...TNR_12 })] }));
-                };
+                addPartToChildren("Потолок", document.getElementById(`r_ceil_${id}`).value, document.getElementById(`r_ceil_s_${id}`).value, document.getElementById(`r_ceil_dmg_${id}`).value, document.getElementById(`r_ceil_req_${id}`).value);
+                addPartToChildren("Стены", document.getElementById(`r_walls_${id}`).value, document.getElementById(`r_walls_s_${id}`).value, document.getElementById(`r_walls_dmg_${id}`).value, document.getElementById(`r_walls_req_${id}`).value);
+                addPartToChildren("Пол", document.getElementById(`r_floor_${id}`).value, document.getElementById(`r_floor_s_${id}`).value, document.getElementById(`r_floor_dmg_${id}`).value, document.getElementById(`r_floor_req_${id}`).value);
 
-                addPart("Потолок", card.querySelector('.r-ceiling').value, card.querySelector('.r-ceiling-dmg').value, card.querySelector('.r-ceiling-req').value);
-                addPart("Стены", card.querySelector('.r-walls').value, card.querySelector('.r-walls-dmg').value, card.querySelector('.r-walls-req').value);
-                addPart("Пол", card.querySelector('.r-floor').value, card.querySelector('.r-floor-dmg').value, card.querySelector('.r-floor-req').value);
+                card.querySelectorAll('.extra-construct-item').forEach(ex => {
+                    const label = ex.querySelector('.ex-val').getAttribute('data-type-label');
+                    const val = ex.querySelector('.ex-val').value;
+                    const s = ex.querySelector('.ex-s').value;
+                    const dmg = ex.querySelector('.ex-dmg').value;
+                    const req = ex.querySelector('.ex-req').value;
+                    addPartToChildren(label, val, s, dmg, req);
+                });
             });
 
-            const itemCards = document.querySelectorAll('.item-card');
-            if (itemCards.length > 0) {
-                children.push(new Paragraph({ 
-                    children: [new TextRun({ text: "Поврежденное имущество:", ...TNR_14_BOLD })],
-                    spacing: { before: 300, after: 100 }
-                }));
-                itemCards.forEach(card => {
-                    children.push(new Paragraph({ children: [new TextRun({ text: `${card.querySelector('.i-name').value}`, ...TNR_12_BOLD })] }));
-                    children.push(new Paragraph({ children: [new TextRun({ text: `Описание повреждений: ${card.querySelector('.i-dmg').value}`, ...TNR_12 })] }));
+            const items = document.querySelectorAll('.item-card');
+            if(items.length > 0) {
+                children.push(new Paragraph({ children: [new TextRun({ text: "Поврежденное имущество:", ...TNR_14_BOLD })], spacing: {before: 300} }));
+                items.forEach(card => {
+                    children.push(new Paragraph({ children: [new TextRun({ text: card.querySelector('.i-name').value, ...TNR_12_BOLD })] }));
+                    children.push(new Paragraph({ children: [new TextRun({ text: `Повреждения: ${card.querySelector('.i-dmg').value}`, ...TNR_12 })] }));
                     children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${card.querySelector('.i-req').value}`, ...TNR_12 })] }));
-                    children.push(new Paragraph({ text: "" }));
                 });
             }
 
+            // Финальные фразы
             children.push(new Paragraph({ text: "", spacing: { before: 200 } }));
-            children.push(new Paragraph({ children: [new TextRun({ text: "*Требуются дополнительные работы: профессиональный клининг, сушка помещения, сбор, вынос и вывоз строительного мусора, пр. сопутствующие работы.", italics: true, ...TNR_12, size: 20 })] }));
-            children.push(new Paragraph({ children: [new TextRun({ text: "*Возможны скрытые дефекты, которые потребуют дополнительного расчета стоимости работ и материалов, необходимых для устранения этих дефектов.", italics: true, ...TNR_12, size: 20 })] }));
-            children.push(new Paragraph({ text: "", spacing: { before: 100 } }));
-            children.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `*Вся документарно неподтвержденная информация записана со слов собственника ________________ подпись`, ...TNR_12 })] }));
+            children.push(new Paragraph({ children: [new TextRun({ text: "*Требуются дополнительные работы: профессиональный клининг, сушка помещения, сбор, вынос и вывоз строительного мусора, пр. сопутствующие работы.", ...TNR_10_ITALIC })] }));
+            children.push(new Paragraph({ 
+                children: [new TextRun({ text: "*Возможны скрытые дефекты, которые потребуют дополнительного расчета стоимости работ и материалов, необходимых для устранения этих дефектов.", ...TNR_10_ITALIC })],
+                spacing: { after: 240 } // Интервал 12пт (в docx 1пт = 20 ед, 12пт = 240)
+            }));
+            children.push(new Paragraph({ 
+                alignment: AlignmentType.RIGHT, 
+                children: [new TextRun({ text: `*Вся документарно неподтвержденная информация записана со слов собственника ________________ подпись`, ...TNR_10_ITALIC })] 
+            }));
 
             try {
-                const doc = new Document({
+                const doc = new Document({ 
                     sections: [{ 
-                        properties: { 
-                            page: { margin: { top: 1134, bottom: 1134, left: 1417, right: 567 } } 
-                        }, 
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: 1134,    // 2 см (1 см = 567 ед)
+                                    bottom: 1134, // 2 см
+                                    left: 1417,   // 2.5 см
+                                    right: 567    // 1 см
+                                }
+                            }
+                        },
                         children: children 
-                    }]
+                    }] 
                 });
-
                 const blob = await Packer.toBlob(doc);
-                saveAs(blob, `Акт_осмотра_${document.getElementById('actNumber').value || 'нового_объекта'}.docx`);
-                
-                // Очистка после успеха (опционально, можно оставить чтобы не потерять)
-                // localStorage.removeItem('damage_act_draft');
-            } catch (err) {
+                saveAs(blob, `Акт_осмотра_${document.getElementById('actNumber').value || 'документ'}.docx`);
+            } catch (err) { 
                 console.error(err);
-                alert("Ошибка генерации документа.");
+                alert("Ошибка при создании Word."); 
             }
         }
     </script>
