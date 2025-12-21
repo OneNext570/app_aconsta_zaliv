@@ -15,9 +15,11 @@
         }
         label { font-size: 0.875rem; font-weight: 600; color: #374151; }
         .section-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem; color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; }
+        .save-indicator { position: fixed; top: 10px; right: 10px; font-size: 0.7rem; color: #10b981; display: none; z-index: 50; }
     </style>
 </head>
 <body class="p-4 pb-24">
+    <div id="saveIndicator" class="save-indicator">Данные сохранены ✓</div>
 
     <div class="max-w-md mx-auto">
         <h1 class="text-2xl font-bold text-center mb-6 text-blue-700">Акт осмотра (Черновик)</h1>
@@ -28,37 +30,37 @@
             <div class="space-y-3">
                 <div>
                     <label>Акт осмотра №</label>
-                    <input type="text" id="actNumber" placeholder="__________">
+                    <input type="text" id="actNumber" class="auto-save" placeholder="__________">
                 </div>
                 <div>
                     <label>Дата и время осмотра</label>
-                    <input type="datetime-local" id="actDateTime">
+                    <input type="datetime-local" id="actDateTime" class="auto-save">
                 </div>
                 <div>
                     <label>Адрес объекта</label>
-                    <input type="text" id="address" placeholder="г. Москва, ул...">
+                    <input type="text" id="address" class="auto-save" placeholder="г. Москва, ул...">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label>Тип помещения</label>
-                        <select id="roomType">
+                        <select id="roomType" class="auto-save">
                             <option value="жилое">Жилое</option>
                             <option value="нежилое">Нежилое</option>
                         </select>
                     </div>
                     <div>
                         <label>Общая площадь (м²)</label>
-                        <input type="number" id="totalArea">
+                        <input type="number" id="totalArea" class="auto-save">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label>Год посл. ремонта</label>
-                        <input type="text" id="lastRepairYear">
+                        <input type="text" id="lastRepairYear" class="auto-save">
                     </div>
                     <div>
                         <label>Дата происшествия</label>
-                        <input type="date" id="incidentDate">
+                        <input type="date" id="incidentDate" class="auto-save">
                     </div>
                 </div>
             </div>
@@ -70,15 +72,15 @@
             <div class="space-y-3">
                 <div>
                     <label>Эксперты</label>
-                    <input type="text" id="expertName" value="Инсафутдинов А.Р.">
+                    <input type="text" id="expertName" class="auto-save" value="Инсафутдинов А.Р.">
                 </div>
                 <div>
                     <label>Собственник/Заказчик/Арендатор</label>
-                    <input type="text" id="ownerName" placeholder="ФИО">
+                    <input type="text" id="ownerName" class="auto-save" placeholder="ФИО">
                 </div>
                 <div>
                     <label>Другие лица</label>
-                    <input type="text" id="others" placeholder="ФИО">
+                    <input type="text" id="others" class="auto-save" placeholder="ФИО">
                 </div>
             </div>
         </div>
@@ -96,7 +98,7 @@
             </button>
         </div>
 
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-2xl">
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-2xl z-40">
             <button id="generateBtn" onclick="generateWord()" class="w-full bg-blue-700 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 shadow-xl">
                 Сформировать акт осмотра (Word)
             </button>
@@ -107,47 +109,62 @@
         let roomCount = 0;
         let itemCount = 0;
 
-        function addRoom() {
+        function addRoom(data = null) {
             roomCount++;
             const div = document.createElement('div');
-            div.className = 'card border-l-4 border-green-500 relative';
+            div.className = 'card border-l-4 border-green-500 relative room-card';
             div.id = `room_${roomCount}`;
             div.innerHTML = `
                 <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
                 <div class="section-title text-green-700">Помещение №${roomCount}</div>
                 <div class="space-y-3">
                     <div class="grid grid-cols-3 gap-2">
-                        <div class="col-span-1"><label>Назв.</label><input type="text" class="r-name" placeholder="Кухня"></div>
-                        <div><label>S (м²)</label><input type="text" class="r-area"></div>
-                        <div><label>H (м)</label><input type="text" class="r-height"></div>
+                        <div class="col-span-1"><label>Назв.</label><input type="text" class="r-name auto-save" placeholder="Кухня"></div>
+                        <div><label>S (м²)</label><input type="text" class="r-area auto-save"></div>
+                        <div><label>H (м)</label><input type="text" class="r-height auto-save"></div>
                     </div>
                     <div>
                         <label>Потолок (отделка)</label>
-                        <input type="text" class="r-ceiling" placeholder="Натяжной, 10 м2">
-                        <textarea class="r-ceiling-dmg" placeholder="Повреждения потолка..."></textarea>
-                        <textarea class="r-ceiling-req" placeholder="Требуется..."></textarea>
+                        <input type="text" class="r-ceiling auto-save" placeholder="Натяжной, 10 м2">
+                        <textarea class="r-ceiling-dmg auto-save" placeholder="Повреждения потолка..."></textarea>
+                        <textarea class="r-ceiling-req auto-save" placeholder="Требуется..."></textarea>
                     </div>
                     <div>
                         <label>Стены</label>
-                        <input type="text" class="r-walls" placeholder="Обои">
-                        <textarea class="r-walls-dmg" placeholder="Повреждения стен..."></textarea>
-                        <textarea class="r-walls-req" placeholder="Требуется..."></textarea>
+                        <input type="text" class="r-walls auto-save" placeholder="Обои">
+                        <textarea class="r-walls-dmg auto-save" placeholder="Повреждения стен..."></textarea>
+                        <textarea class="r-walls-req auto-save" placeholder="Требуется..."></textarea>
                     </div>
                     <div>
                         <label>Пол</label>
-                        <input type="text" class="r-floor" placeholder="Ламинат">
-                        <textarea class="r-floor-dmg" placeholder="Повреждения пола..."></textarea>
-                        <textarea class="r-floor-req" placeholder="Требуется..."></textarea>
+                        <input type="text" class="r-floor auto-save" placeholder="Ламинат">
+                        <textarea class="r-floor-dmg auto-save" placeholder="Повреждения пола..."></textarea>
+                        <textarea class="r-floor-req auto-save" placeholder="Требуется..."></textarea>
                     </div>
                 </div>
             `;
             document.getElementById('roomsContainer').appendChild(div);
+
+            if (data) {
+                div.querySelector('.r-name').value = data.name || '';
+                div.querySelector('.r-area').value = data.area || '';
+                div.querySelector('.r-height').value = data.height || '';
+                div.querySelector('.r-ceiling').value = data.ceiling || '';
+                div.querySelector('.r-ceiling-dmg').value = data.ceilingDmg || '';
+                div.querySelector('.r-ceiling-req').value = data.ceilingReq || '';
+                div.querySelector('.r-walls').value = data.walls || '';
+                div.querySelector('.r-walls-dmg').value = data.wallsDmg || '';
+                div.querySelector('.r-walls-req').value = data.wallsReq || '';
+                div.querySelector('.r-floor').value = data.floor || '';
+                div.querySelector('.r-floor-dmg').value = data.floorDmg || '';
+                div.querySelector('.r-floor-req').value = data.floorReq || '';
+            }
         }
 
-        function addItem() {
+        function addItem(data = null) {
             itemCount++;
             const div = document.createElement('div');
-            div.className = 'card border-l-4 border-orange-500 relative';
+            div.className = 'card border-l-4 border-orange-500 relative item-card';
             div.id = `item_${itemCount}`;
             div.innerHTML = `
                 <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
@@ -155,20 +172,103 @@
                 <div class="space-y-3">
                     <div>
                         <label>Поврежденное имущество</label>
-                        <input type="text" class="i-name" placeholder="Телевизор Samsung">
+                        <input type="text" class="i-name auto-save" placeholder="Телевизор Samsung">
                     </div>
                     <div>
                         <label>Описание повреждений</label>
-                        <textarea class="i-dmg"></textarea>
+                        <textarea class="i-dmg auto-save"></textarea>
                     </div>
                     <div>
                         <label>Требуется</label>
-                        <textarea class="i-req"></textarea>
+                        <textarea class="i-req auto-save"></textarea>
                     </div>
                 </div>
             `;
             document.getElementById('itemsContainer').appendChild(div);
+
+            if (data) {
+                div.querySelector('.i-name').value = data.name || '';
+                div.querySelector('.i-dmg').value = data.dmg || '';
+                div.querySelector('.i-req').value = data.req || '';
+            }
         }
+
+        // Логика автосохранения
+        function saveToLocalStorage() {
+            const formData = {
+                actNumber: document.getElementById('actNumber').value,
+                actDateTime: document.getElementById('actDateTime').value,
+                address: document.getElementById('address').value,
+                roomType: document.getElementById('roomType').value,
+                totalArea: document.getElementById('totalArea').value,
+                lastRepairYear: document.getElementById('lastRepairYear').value,
+                incidentDate: document.getElementById('incidentDate').value,
+                expertName: document.getElementById('expertName').value,
+                ownerName: document.getElementById('ownerName').value,
+                others: document.getElementById('others').value,
+                rooms: [],
+                items: []
+            };
+
+            document.querySelectorAll('.room-card').forEach(card => {
+                formData.rooms.push({
+                    name: card.querySelector('.r-name').value,
+                    area: card.querySelector('.r-area').value,
+                    height: card.querySelector('.r-height').value,
+                    ceiling: card.querySelector('.r-ceiling').value,
+                    ceilingDmg: card.querySelector('.r-ceiling-dmg').value,
+                    ceilingReq: card.querySelector('.r-ceiling-req').value,
+                    walls: card.querySelector('.r-walls').value,
+                    wallsDmg: card.querySelector('.r-walls-dmg').value,
+                    wallsReq: card.querySelector('.r-walls-req').value,
+                    floor: card.querySelector('.r-floor').value,
+                    floorDmg: card.querySelector('.r-floor-dmg').value,
+                    floorReq: card.querySelector('.r-floor-req').value
+                });
+            });
+
+            document.querySelectorAll('.item-card').forEach(card => {
+                formData.items.push({
+                    name: card.querySelector('.i-name').value,
+                    dmg: card.querySelector('.i-dmg').value,
+                    req: card.querySelector('.i-req').value
+                });
+            });
+
+            localStorage.setItem('damage_act_draft', JSON.stringify(formData));
+            
+            // Показываем индикатор
+            const indicator = document.getElementById('saveIndicator');
+            indicator.style.display = 'block';
+            setTimeout(() => indicator.style.display = 'none', 1000);
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('damage_act_draft');
+            if (!saved) return;
+
+            const data = JSON.parse(saved);
+            
+            // Восстановление базовых полей
+            document.getElementById('actNumber').value = data.actNumber || '';
+            document.getElementById('actDateTime').value = data.actDateTime || '';
+            document.getElementById('address').value = data.address || '';
+            document.getElementById('roomType').value = data.roomType || 'жилое';
+            document.getElementById('totalArea').value = data.totalArea || '';
+            document.getElementById('lastRepairYear').value = data.lastRepairYear || '';
+            document.getElementById('incidentDate').value = data.incidentDate || '';
+            document.getElementById('expertName').value = data.expertName || 'Инсафутдинов А.Р.';
+            document.getElementById('ownerName').value = data.ownerName || '';
+            document.getElementById('others').value = data.others || '';
+
+            // Восстановление карточек
+            if (data.rooms) data.rooms.forEach(r => addRoom(r));
+            if (data.items) data.items.forEach(i => addItem(i));
+        }
+
+        // Запуск сохранения при изменениях
+        setInterval(saveToLocalStorage, 2000); 
+        window.onload = loadFromLocalStorage;
 
         async function generateWord() {
             const docxLib = window.docx;
@@ -177,13 +277,12 @@
                 return;
             }
 
-            const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docxLib;
+            const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docxLib;
 
-            // Настройки шрифта
-            const TNR_7 = { font: "Times New Roman", size: 14 }; // 7pt
-            const TNR_10 = { font: "Times New Roman", size: 20 }; // 10pt
+            const TNR_7 = { font: "Times New Roman", size: 14 }; 
+            const TNR_10 = { font: "Times New Roman", size: 20 }; 
             const TNR_10_BOLD = { font: "Times New Roman", size: 20, bold: true };
-            const TNR_12 = { font: "Times New Roman", size: 24 }; // 12pt
+            const TNR_12 = { font: "Times New Roman", size: 24 }; 
             const TNR_12_BOLD = { font: "Times New Roman", size: 24, bold: true };
             const TNR_14_BOLD = { font: "Times New Roman", size: 28, bold: true };
 
@@ -202,7 +301,6 @@
                     spacing: { after: 300 }
                 }),
                 
-                // Таблица в шапке (Размер шрифта 10)
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
                     borders: { top: {style: BorderStyle.NONE}, bottom: {style: BorderStyle.NONE}, left: {style: BorderStyle.NONE}, right: {style: BorderStyle.NONE}, insideHorizontal: {style: BorderStyle.NONE}, insideVertical: {style: BorderStyle.NONE}},
@@ -231,7 +329,6 @@
                 new Paragraph({ text: "", spacing: { before: 200 } }),
                 new Paragraph({ children: [new TextRun({ text: "Участники осмотра:", ...TNR_10_BOLD, underline: {} })] }),
                 
-                // Участники (Размер шрифта 10)
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Эксперты: ${document.getElementById('expertName').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Собственник/заказчик/арендатор: ${document.getElementById('ownerName').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Другие заинтересованные лица: ${document.getElementById('others').value} ________________ подпись`, ...TNR_10 })] }),
@@ -239,9 +336,7 @@
                 new Paragraph({ text: "", spacing: { before: 200 } }),
             ];
 
-            // Помещения (Здесь шрифт 14 для заголовка и 12 для описания)
-            const roomCards = document.querySelectorAll('#roomsContainer .card');
-            roomCards.forEach(card => {
+            document.querySelectorAll('.room-card').forEach(card => {
                 const name = card.querySelector('.r-name').value;
                 const area = card.querySelector('.r-area').value;
                 const height = card.querySelector('.r-height').value;
@@ -263,8 +358,7 @@
                 addPart("Пол", card.querySelector('.r-floor').value, card.querySelector('.r-floor-dmg').value, card.querySelector('.r-floor-req').value);
             });
 
-            // Имущество
-            const itemCards = document.querySelectorAll('#itemsContainer .card');
+            const itemCards = document.querySelectorAll('.item-card');
             if (itemCards.length > 0) {
                 children.push(new Paragraph({ 
                     children: [new TextRun({ text: "Поврежденное имущество:", ...TNR_14_BOLD })],
@@ -278,44 +372,17 @@
                 });
             }
 
-            // Дисклеймеры
             children.push(new Paragraph({ text: "", spacing: { before: 200 } }));
-            children.push(new Paragraph({ 
-                children: [new TextRun({ 
-                    text: "*Требуются дополнительные работы: профессиональный клининг, сушка помещения, сбор, вынос и вывоз строительного мусора, пр. сопутствующие работы.",
-                    italics: true, ...TNR_12, size: 20
-                })]
-            }));
-            children.push(new Paragraph({ 
-                children: [new TextRun({
-                    text: "*Возможны скрытые дефекты, которые потребуют дополнительного расчета стоимости работ и материалов, необходимых для устранения этих дефектов.",
-                    italics: true, ...TNR_12, size: 20
-                })]
-            }));
-            
+            children.push(new Paragraph({ children: [new TextRun({ text: "*Требуются дополнительные работы: профессиональный клининг, сушка помещения, сбор, вынос и вывоз строительного мусора, пр. сопутствующие работы.", italics: true, ...TNR_12, size: 20 })] }));
+            children.push(new Paragraph({ children: [new TextRun({ text: "*Возможны скрытые дефекты, которые потребуют дополнительного расчета стоимости работ и материалов, необходимых для устранения этих дефектов.", italics: true, ...TNR_12, size: 20 })] }));
             children.push(new Paragraph({ text: "", spacing: { before: 100 } }));
-            
-            // Финальная подпись (шрифт 12, не жирный, справа)
-            children.push(new Paragraph({ 
-                alignment: AlignmentType.RIGHT,
-                children: [new TextRun({ 
-                    text: `*Вся документарно неподтвержденная информация записана со слов собственника ________________ подпись`,
-                    ...TNR_12
-                })]
-            }));
+            children.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `*Вся документарно неподтвержденная информация записана со слов собственника ________________ подпись`, ...TNR_12 })] }));
 
             try {
                 const doc = new Document({
                     sections: [{ 
                         properties: { 
-                            page: { 
-                                margin: { 
-                                    top: 1134,    // 2 см
-                                    bottom: 1134, // 2 см
-                                    left: 1417,   // 2.5 см
-                                    right: 567    // 1 см
-                                } 
-                            } 
+                            page: { margin: { top: 1134, bottom: 1134, left: 1417, right: 567 } } 
                         }, 
                         children: children 
                     }]
@@ -323,6 +390,9 @@
 
                 const blob = await Packer.toBlob(doc);
                 saveAs(blob, `Акт_осмотра_${document.getElementById('actNumber').value || 'нового_объекта'}.docx`);
+                
+                // Очистка после успеха (опционально, можно оставить чтобы не потерять)
+                // localStorage.removeItem('damage_act_draft');
             } catch (err) {
                 console.error(err);
                 alert("Ошибка генерации документа.");
