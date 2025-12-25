@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -37,6 +36,9 @@
         }
         .extra-construct-item {
             border-left: 2px dashed #9ca3af; padding-left: 0.75rem; margin-top: 1rem; position: relative;
+        }
+        .note-item {
+            background-color: #fefce8; border: 1px solid #fef08a; padding: 10px; margin-top: 10px; border-radius: 6px; position: relative;
         }
     </style>
 </head>
@@ -125,13 +127,17 @@
 
         <div id="roomsContainer"></div>
         <div id="itemsContainer"></div>
+        <div id="systemsContainer"></div>
 
-        <div class="flex gap-2 mb-6">
-            <button onclick="addRoom()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-transform">
+        <div class="flex flex-wrap gap-2 mb-6">
+            <button onclick="addRoom()" class="flex-1 min-w-[120px] bg-green-600 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-transform text-sm">
                 + Помещение
             </button>
-            <button onclick="addItem()" class="flex-1 bg-orange-500 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-transform">
+            <button onclick="addItem()" class="flex-1 min-w-[120px] bg-orange-500 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-transform text-sm">
                 + Имущество
+            </button>
+            <button onclick="addSystem()" class="flex-1 min-w-[120px] bg-blue-500 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-transform text-sm">
+                + Инж. коммуникации
             </button>
         </div>
 
@@ -145,6 +151,7 @@
     <script>
         let roomCount = 0;
         let itemCount = 0;
+        let systemCount = 0;
         let activeTargetId = null;
         let currentOptions = [];
         let extraCount = 0;
@@ -193,51 +200,6 @@
             saveToLocalStorage();
         }
 
-        function createConstructBlock(roomId, typeLabel, typeKey, data = null) {
-            extraCount++;
-            const id = extraCount;
-            const container = document.createElement('div');
-            container.className = 'extra-construct-item';
-            container.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="absolute top-0 right-0 text-gray-400 hover:text-red-500 text-sm">удалить</button>
-                <label>${typeLabel} (доп.)</label>
-                <input type="text" id="ex_${id}" class="ex-val auto-save hidden" data-type-label="${typeLabel}">
-                <button onclick="openModal('ex_${id}', '${typeKey}', 'Выбрать материал')" class="multi-select-btn" id="btn_ex_${id}">Выбрать отделку...</button>
-                <div class="mt-1 flex items-center gap-2">
-                    <span class="text-xs font-bold whitespace-nowrap">S отд.:</span>
-                    <input type="text" id="ex_s_${id}" class="ex-s auto-save text-xs" style="margin-top:0" placeholder="м²">
-                </div>
-                <input type="text" id="ex_dmg_${id}" class="ex-dmg auto-save hidden">
-                <button onclick="openModal('ex_dmg_${id}', 'dmg', 'Повреждения')" class="multi-select-btn mt-1" id="btn_ex_dmg_${id}">Повреждения...</button>
-                <input type="text" id="ex_req_${id}" class="ex-req auto-save hidden">
-                <button onclick="openModal('ex_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_ex_req_${id}">Работы...</button>
-            `;
-
-            const updateBtn = (inputIdx, btnIdx) => {
-                const inp = document.getElementById(inputIdx);
-                const btn = document.getElementById(btnIdx);
-                const checker = setInterval(() => {
-                    if (!document.getElementById(inputIdx)) { clearInterval(checker); return; }
-                    btn.innerText = inp.value || "Выбрать...";
-                    btn.classList.toggle('text-blue-600', !!inp.value);
-                }, 500);
-            };
-
-            setTimeout(() => {
-                updateBtn(`ex_${id}`, `btn_ex_${id}`);
-                updateBtn(`ex_dmg_${id}`, `btn_ex_dmg_${id}`);
-                updateBtn(`ex_req_${id}`, `btn_ex_req_${id}`);
-                if (data) {
-                    document.getElementById(`ex_${id}`).value = data.val || '';
-                    document.getElementById(`ex_s_${id}`).value = data.s || '';
-                    document.getElementById(`ex_dmg_${id}`).value = data.dmg || '';
-                    document.getElementById(`ex_req_${id}`).value = data.req || '';
-                }
-            }, 50);
-
-            return container;
-        }
-
         function addRoom(data = null) {
             roomCount++;
             const id = roomCount;
@@ -253,47 +215,14 @@
                         <div><label>S (м²)</label><input type="text" class="r-area auto-save"></div>
                         <div><label>H (м)</label><input type="text" class="r-height auto-save"></div>
                     </div>
-                    <div>
-                        <label>Потолок</label>
-                        <input type="text" id="r_ceil_${id}" class="r-ceiling auto-save hidden">
-                        <button onclick="openModal('r_ceil_${id}', 'ceiling', 'Отделка потолка')" class="multi-select-btn" id="btn_ceil_${id}">Выбрать отделку...</button>
-                        <div class="mt-1 flex items-center gap-2">
-                            <span class="text-xs font-bold whitespace-nowrap">S отд. потолка:</span>
-                            <input type="text" id="r_ceil_s_${id}" class="r-ceiling-s auto-save text-xs" style="margin-top:0" placeholder="м²">
-                        </div>
-                        <input type="text" id="r_ceil_dmg_${id}" class="r-ceiling-dmg auto-save hidden">
-                        <button onclick="openModal('r_ceil_dmg_${id}', 'dmg', 'Повреждения потолка')" class="multi-select-btn mt-1" id="btn_ceil_dmg_${id}">Повреждения...</button>
-                        <input type="text" id="r_ceil_req_${id}" class="r-ceiling-req auto-save hidden">
-                        <button onclick="openModal('r_ceil_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_ceil_req_${id}">Работы...</button>
-                    </div>
-                    <div class="pt-2 border-t">
-                        <label>Стены</label>
-                        <input type="text" id="r_walls_${id}" class="r-walls auto-save hidden">
-                        <button onclick="openModal('r_walls_${id}', 'walls', 'Отделка стен')" class="multi-select-btn" id="btn_walls_${id}">Выбрать отделку...</button>
-                        <div class="mt-1 flex items-center gap-2">
-                            <span class="text-xs font-bold whitespace-nowrap">S отд. стен:</span>
-                            <input type="text" id="r_walls_s_${id}" class="r-walls-s auto-save text-xs" style="margin-top:0" placeholder="м²">
-                        </div>
-                        <input type="text" id="r_walls_dmg_${id}" class="r-walls-dmg auto-save hidden">
-                        <button onclick="openModal('r_walls_dmg_${id}', 'dmg', 'Повреждения стен')" class="multi-select-btn mt-1" id="btn_walls_dmg_${id}">Повреждения...</button>
-                        <input type="text" id="r_walls_req_${id}" class="r-walls-req auto-save hidden">
-                        <button onclick="openModal('r_walls_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_walls_req_${id}">Работы...</button>
-                    </div>
-                    <div class="pt-2 border-t">
-                        <label>Пол</label>
-                        <input type="text" id="r_floor_${id}" class="r-floor auto-save hidden">
-                        <button onclick="openModal('r_floor_${id}', 'floor', 'Отделка пола')" class="multi-select-btn" id="btn_floor_${id}">Выбрать отделку...</button>
-                        <div class="mt-1 flex items-center gap-2">
-                            <span class="text-xs font-bold whitespace-nowrap">S отд. пола:</span>
-                            <input type="text" id="r_floor_s_${id}" class="r-floor-s auto-save text-xs" style="margin-top:0" placeholder="м²">
-                        </div>
-                        <input type="text" id="r_floor_dmg_${id}" class="r-floor-dmg auto-save hidden">
-                        <button onclick="openModal('r_floor_dmg_${id}', 'dmg', 'Повреждения пола')" class="multi-select-btn mt-1" id="btn_floor_dmg_${id}">Повреждения...</button>
-                        <input type="text" id="r_floor_req_${id}" class="r-floor-req auto-save hidden">
-                        <button onclick="openModal('r_floor_req_${id}', 'req', 'Мероприятия')" class="multi-select-btn mt-1" id="btn_floor_req_${id}">Работы...</button>
-                    </div>
+                    ${renderConstructHtml(id, 'ceil', 'ceiling', 'Потолок')}
+                    ${renderConstructHtml(id, 'walls', 'walls', 'Стены')}
+                    ${renderConstructHtml(id, 'floor', 'floor', 'Пол')}
                     <div class="extras-list pt-2 border-t" id="extras_${id}"></div>
-                    <button onclick="showExtraMenu(${id})" class="w-full mt-2 border border-gray-300 py-1 text-xs rounded bg-gray-50 hover:bg-gray-100">+ Добавить элемент отделки</button>
+                    <div class="flex flex-col gap-2 mt-2">
+                        <button onclick="showExtraMenu(${id})" class="w-full border border-gray-300 py-1 text-xs rounded bg-gray-50 hover:bg-gray-100">+ Добавить элемент отделки</button>
+                        <button onclick="addNoteToRoom(${id})" class="w-full border border-orange-300 py-1 text-xs rounded bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold">+ Уточнение для сметчика</button>
+                    </div>
                     <div id="extra_menu_${id}" class="hidden mt-2 grid grid-cols-3 gap-1">
                         <button onclick="addExtraToRoom(${id}, 'Потолок', 'ceiling')" class="bg-gray-200 text-[10px] py-1 rounded">Потолок</button>
                         <button onclick="addExtraToRoom(${id}, 'Стены', 'walls')" class="bg-gray-200 text-[10px] py-1 rounded">Стены</button>
@@ -302,81 +231,148 @@
                 </div>
             `;
             document.getElementById('roomsContainer').appendChild(div);
-
-            const updateBtn = (inputIdx, btnIdx) => {
-                const inp = document.getElementById(inputIdx);
-                const btn = document.getElementById(btnIdx);
-                const checker = setInterval(() => {
-                    if (!document.getElementById(inputIdx)) { clearInterval(checker); return; }
-                    btn.innerText = inp.value || "Выбрать...";
-                    btn.classList.toggle('text-blue-600', !!inp.value);
-                }, 500);
-            };
-            
-            ['ceil','ceil_dmg','ceil_req','walls','walls_dmg','walls_req','floor','floor_dmg','floor_req'].forEach(key => {
-                updateBtn(`r_${key}_${id}`, `btn_${key}_${id}`);
-            });
+            initConstructButtons(id);
 
             if (data) {
                 div.querySelector('.r-name').value = data.name || '';
                 div.querySelector('.r-area').value = data.area || '';
                 div.querySelector('.r-height').value = data.height || '';
-                document.getElementById(`r_ceil_${id}`).value = data.ceiling || '';
-                document.getElementById(`r_ceil_s_${id}`).value = data.ceilingS || '';
-                document.getElementById(`r_ceil_dmg_${id}`).value = data.ceilingDmg || '';
-                document.getElementById(`r_ceil_req_${id}`).value = data.ceilingReq || '';
-                document.getElementById(`r_walls_${id}`).value = data.walls || '';
-                document.getElementById(`r_walls_s_${id}`).value = data.wallsS || '';
-                document.getElementById(`r_walls_dmg_${id}`).value = data.wallsDmg || '';
-                document.getElementById(`r_walls_req_${id}`).value = data.wallsReq || '';
-                document.getElementById(`r_floor_${id}`).value = data.floor || '';
-                document.getElementById(`r_floor_s_${id}`).value = data.floorS || '';
-                document.getElementById(`r_floor_dmg_${id}`).value = data.floorDmg || '';
-                document.getElementById(`r_floor_req_${id}`).value = data.floorReq || '';
-                if (data.extras) {
-                    data.extras.forEach(ex => {
-                        const key = ex.label === 'Потолок' ? 'ceiling' : ex.label === 'Стены' ? 'walls' : 'floor';
-                        const block = createConstructBlock(id, ex.label, key, ex);
-                        document.getElementById(`extras_${id}`).appendChild(block);
-                    });
-                }
+                ['ceil','walls','floor'].forEach(k => {
+                    document.getElementById(`r_${k}_${id}`).value = data[k] || '';
+                    document.getElementById(`r_${k}_s_${id}`).value = data[k+'S'] || '';
+                    if(document.getElementById(`r_${k}_p_${id}`)) document.getElementById(`r_${k}_p_${id}`).value = data[k+'P'] || '';
+                    document.getElementById(`r_${k}_dmg_${id}`).value = data[k+'Dmg'] || '';
+                    document.getElementById(`r_${k}_req_${id}`).value = data[k+'Req'] || '';
+                });
+                if (data.extras) data.extras.forEach(ex => addExtraToRoom(id, ex.label, (ex.label==='Потолок'?'ceiling':ex.label==='Стены'?'walls':'floor'), ex));
+                if (data.notes) data.notes.forEach(n => addNoteToRoom(id, n));
             }
         }
 
-        function showExtraMenu(id) {
-            const menu = document.getElementById(`extra_menu_${id}`);
-            menu.classList.toggle('hidden');
+        function renderConstructHtml(rid, key, type, label) {
+            return `
+                <div class="pt-2 border-t">
+                    <label>${label}</label>
+                    <input type="text" id="r_${key}_${rid}" class="r-${key} auto-save hidden">
+                    <button id="btn_${key}_${rid}" onclick="openModal('r_${key}_${rid}', '${type}', 'Отделка')" class="multi-select-btn">Выбрать отделку...</button>
+                    <div class="mt-1 flex items-center gap-4">
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs font-bold whitespace-nowrap">S отд.:</span>
+                            <input type="text" id="r_${key}_s_${rid}" class="auto-save text-xs w-16" style="margin-top:0" placeholder="м²">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs font-bold whitespace-nowrap">P :</span>
+                            <input type="text" id="r_${key}_p_${rid}" class="auto-save text-xs w-16" style="margin-top:0" placeholder="м.п.">
+                        </div>
+                    </div>
+                    <input type="text" id="r_${key}_dmg_${rid}" class="auto-save hidden">
+                    <button id="btn_${key}_dmg_${rid}" onclick="openModal('r_${key}_dmg_${rid}', 'dmg', 'Повреждения')" class="multi-select-btn mt-1">Повреждения...</button>
+                    <input type="text" id="r_${key}_req_${rid}" class="auto-save hidden">
+                    <button id="btn_${key}_req_${rid}" onclick="openModal('r_${key}_req_${rid}', 'req', 'Работы')" class="multi-select-btn mt-1">Работы...</button>
+                </div>
+            `;
         }
 
-        function addExtraToRoom(roomId, label, key) {
-            const block = createConstructBlock(roomId, label, key);
-            document.getElementById(`extras_${roomId}`).appendChild(block);
+        function initConstructButtons(rid) {
+            ['ceil','walls','floor'].forEach(k => {
+                const update = (f) => {
+                    const inp = document.getElementById(`r_${k}${f}_${rid}`);
+                    const btn = document.getElementById(`btn_${k}${f}_${rid}`);
+                    setInterval(() => { if(inp) btn.innerText = inp.value || (f===''?"Выбрать...":f==='_dmg'?"Повреждения...":"Работы..."); }, 500);
+                };
+                update(''); update('_dmg'); update('_req');
+            });
+        }
+
+        function showExtraMenu(id) { document.getElementById(`extra_menu_${id}`).classList.toggle('hidden'); }
+
+        function addExtraToRoom(roomId, label, key, data = null) {
+            extraCount++;
+            const id = extraCount;
+            const container = document.createElement('div');
+            container.className = 'extra-construct-item';
+            container.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-0 right-0 text-gray-400 hover:text-red-500 text-sm">удалить</button>
+                <label>${label} (доп.)</label>
+                <input type="text" id="ex_${id}" class="ex-val auto-save hidden" data-type-label="${label}">
+                <button id="btn_ex_${id}" onclick="openModal('ex_${id}', '${key}', 'Выбрать отделку')" class="multi-select-btn">Выбрать отделку...</button>
+                <div class="mt-1 flex items-center gap-4">
+                    <div class="flex items-center gap-1">
+                        <span class="text-xs font-bold whitespace-nowrap">S отд.:</span>
+                        <input type="text" id="ex_s_${id}" class="ex-s auto-save text-xs w-16" style="margin-top:0" placeholder="м²">
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="text-xs font-bold whitespace-nowrap">P :</span>
+                        <input type="text" id="ex_p_${id}" class="ex-p auto-save text-xs w-16" style="margin-top:0" placeholder="м.п.">
+                    </div>
+                </div>
+                <input type="text" id="ex_dmg_${id}" class="ex-dmg auto-save hidden">
+                <button id="btn_ex_dmg_${id}" onclick="openModal('ex_dmg_${id}', 'dmg', 'Повреждения')" class="multi-select-btn mt-1">Повреждения...</button>
+                <input type="text" id="ex_req_${id}" class="ex-req auto-save hidden">
+                <button id="btn_ex_req_${id}" onclick="openModal('ex_req_${id}', 'req', 'Работы')" class="multi-select-btn mt-1">Работы...</button>
+            `;
+            document.getElementById(`extras_${roomId}`).appendChild(container);
             document.getElementById(`extra_menu_${roomId}`).classList.add('hidden');
+            
+            const update = (fid, bid) => {
+                const inp = document.getElementById(fid);
+                const btn = document.getElementById(bid);
+                setInterval(() => { if(inp) btn.innerText = inp.value || "Выбрать..."; }, 500);
+            };
+            update(`ex_${id}`, `btn_ex_${id}`); update(`ex_dmg_${id}`, `btn_ex_dmg_${id}`); update(`ex_req_${id}`, `btn_ex_req_${id}`);
+
+            if(data) {
+                document.getElementById(`ex_${id}`).value = data.val || '';
+                document.getElementById(`ex_s_${id}`).value = data.s || '';
+                document.getElementById(`ex_p_${id}`).value = data.p || '';
+                document.getElementById(`ex_dmg_${id}`).value = data.dmg || '';
+                document.getElementById(`ex_req_${id}`).value = data.req || '';
+            }
+        }
+
+        function addNoteToRoom(roomId, val = '') {
+            const div = document.createElement('div');
+            div.className = 'note-item';
+            div.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-0 right-1 text-orange-400 hover:text-red-500 text-xs">✕</button>
+                <label class="text-[10px] text-orange-600 font-bold block">ПРИМЕЧАНИЕ ДЛЯ СМЕТЧИКА:</label>
+                <textarea class="r-note auto-save text-xs p-1 h-16 w-full mt-1 border border-orange-200" placeholder="Например: учесть демонтаж кухонного гарнитура...">${val}</textarea>
+            `;
+            document.getElementById(`extras_${roomId}`).appendChild(div);
         }
 
         function addItem(data = null) {
             itemCount++;
             const div = document.createElement('div');
             div.className = 'card border-l-4 border-orange-500 relative item-card';
-            div.id = `item_${itemCount}`;
             div.innerHTML = `
                 <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
                 <div class="section-title text-orange-700">Имущество №${itemCount}</div>
                 <div class="space-y-3">
-                    <div>
-                        <label>Поврежденное имущество</label>
-                        <input type="text" class="i-name auto-save" placeholder="Телевизор Samsung">
-                    </div>
+                    <div><label>Название</label><input type="text" class="i-name auto-save"></div>
                     <div><label>Описание повреждений</label><textarea class="i-dmg auto-save"></textarea></div>
                     <div><label>Требуется</label><textarea class="i-req auto-save"></textarea></div>
                 </div>
             `;
             document.getElementById('itemsContainer').appendChild(div);
-            if (data) {
-                div.querySelector('.i-name').value = data.name || '';
-                div.querySelector('.i-dmg').value = data.dmg || '';
-                div.querySelector('.i-req').value = data.req || '';
-            }
+            if(data) { div.querySelector('.i-name').value = data.name; div.querySelector('.i-dmg').value = data.dmg; div.querySelector('.i-req').value = data.req; }
+        }
+
+        function addSystem(data = null) {
+            systemCount++;
+            const div = document.createElement('div');
+            div.className = 'card border-l-4 border-blue-500 relative system-card';
+            div.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
+                <div class="section-title text-blue-700">Инженерные коммуникации №${systemCount}</div>
+                <div class="space-y-3">
+                    <div><label>Название</label><input type="text" class="s-name auto-save" placeholder="Например: Радиатор отопления"></div>
+                    <div><label>Описание повреждений</label><textarea class="s-dmg auto-save"></textarea></div>
+                    <div><label>Требуется</label><textarea class="s-req auto-save"></textarea></div>
+                </div>
+            `;
+            document.getElementById('systemsContainer').appendChild(div);
+            if(data) { div.querySelector('.s-name').value = data.name; div.querySelector('.s-dmg').value = data.dmg; div.querySelector('.s-req').value = data.req; }
         }
 
         function saveToLocalStorage() {
@@ -391,60 +387,38 @@
                 expertName: document.getElementById('expertName').value,
                 ownerName: document.getElementById('ownerName').value,
                 others: document.getElementById('others').value,
-                rooms: [],
-                items: []
+                rooms: [], items: [], systems: []
             };
-
             document.querySelectorAll('.room-card').forEach(card => {
                 const id = card.id.split('_').pop();
                 const roomData = {
-                    name: card.querySelector('.r-name').value,
-                    area: card.querySelector('.r-area').value,
-                    height: card.querySelector('.r-height').value,
-                    ceiling: document.getElementById(`r_ceil_${id}`).value,
-                    ceilingS: document.getElementById(`r_ceil_s_${id}`).value,
-                    ceilingDmg: document.getElementById(`r_ceil_dmg_${id}`).value,
-                    ceilingReq: document.getElementById(`r_ceil_req_${id}`).value,
-                    walls: document.getElementById(`r_walls_${id}`).value,
-                    wallsS: document.getElementById(`r_walls_s_${id}`).value,
-                    wallsDmg: document.getElementById(`r_walls_dmg_${id}`).value,
-                    wallsReq: document.getElementById(`r_walls_req_${id}`).value,
-                    floor: document.getElementById(`r_floor_${id}`).value,
-                    floorS: document.getElementById(`r_floor_s_${id}`).value,
-                    floorDmg: document.getElementById(`r_floor_dmg_${id}`).value,
-                    floorReq: document.getElementById(`r_floor_req_${id}`).value,
-                    extras: []
+                    name: card.querySelector('.r-name').value, area: card.querySelector('.r-area').value, height: card.querySelector('.r-height').value,
+                    ceil: document.getElementById(`r_ceil_${id}`).value, ceilS: document.getElementById(`r_ceil_s_${id}`).value, ceilP: document.getElementById(`r_ceil_p_${id}`).value, ceilDmg: document.getElementById(`r_ceil_dmg_${id}`).value, ceilReq: document.getElementById(`r_ceil_req_${id}`).value,
+                    walls: document.getElementById(`r_walls_${id}`).value, wallsS: document.getElementById(`r_walls_s_${id}`).value, wallsP: document.getElementById(`r_walls_p_${id}`).value, wallsDmg: document.getElementById(`r_walls_dmg_${id}`).value, wallsReq: document.getElementById(`r_walls_req_${id}`).value,
+                    floor: document.getElementById(`r_floor_${id}`).value, floorS: document.getElementById(`r_floor_s_${id}`).value, floorP: document.getElementById(`r_floor_p_${id}`).value, floorDmg: document.getElementById(`r_floor_dmg_${id}`).value, floorReq: document.getElementById(`r_floor_req_${id}`).value,
+                    extras: [], notes: []
                 };
-
                 card.querySelectorAll('.extra-construct-item').forEach(ex => {
-                    roomData.extras.push({
-                        label: ex.querySelector('.ex-val').getAttribute('data-type-label'),
-                        val: ex.querySelector('.ex-val').value,
-                        s: ex.querySelector('.ex-s').value,
-                        dmg: ex.querySelector('.ex-dmg').value,
-                        req: ex.querySelector('.ex-req').value
+                    roomData.extras.push({ 
+                        label: ex.querySelector('.ex-val').getAttribute('data-type-label'), 
+                        val: ex.querySelector('.ex-val').value, 
+                        s: ex.querySelector('.ex-s').value, 
+                        p: ex.querySelector('.ex-p').value,
+                        dmg: ex.querySelector('.ex-dmg').value, 
+                        req: ex.querySelector('.ex-req').value 
                     });
                 });
-
+                card.querySelectorAll('.r-note').forEach(n => roomData.notes.push(n.value));
                 formData.rooms.push(roomData);
             });
-
-            document.querySelectorAll('.item-card').forEach(card => {
-                formData.items.push({
-                    name: card.querySelector('.i-name').value,
-                    dmg: card.querySelector('.i-dmg').value,
-                    req: card.querySelector('.i-req').value
-                });
-            });
-
-            localStorage.setItem('damage_act_draft', JSON.stringify(formData));
-            const indicator = document.getElementById('saveIndicator');
-            indicator.style.display = 'block';
-            setTimeout(() => indicator.style.display = 'none', 1000);
+            document.querySelectorAll('.item-card').forEach(i => formData.items.push({ name: i.querySelector('.i-name').value, dmg: i.querySelector('.i-dmg').value, req: i.querySelector('.i-req').value }));
+            document.querySelectorAll('.system-card').forEach(s => formData.systems.push({ name: s.querySelector('.s-name').value, dmg: s.querySelector('.s-dmg').value, req: s.querySelector('.s-req').value }));
+            localStorage.setItem('damage_act_draft_v3', JSON.stringify(formData));
+            const ind = document.getElementById('saveIndicator'); ind.style.display = 'block'; setTimeout(() => ind.style.display='none', 800);
         }
 
         function loadFromLocalStorage() {
-            const saved = localStorage.getItem('damage_act_draft');
+            const saved = localStorage.getItem('damage_act_draft_v3');
             if (!saved) return;
             const data = JSON.parse(saved);
             document.getElementById('actNumber').value = data.actNumber || '';
@@ -459,34 +433,30 @@
             document.getElementById('others').value = data.others || '';
             if (data.rooms) data.rooms.forEach(r => addRoom(r));
             if (data.items) data.items.forEach(i => addItem(i));
+            if (data.systems) data.systems.forEach(s => addSystem(s));
         }
 
-        setInterval(saveToLocalStorage, 10000); 
         window.onload = loadFromLocalStorage;
 
         async function generateWord() {
             const docxLib = window.docx;
-            if (!docxLib) { alert("Загрузка библиотеки Word..."); return; }
-
             const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docxLib;
 
-            // Константы шрифтов и стилей
+            // Стили шрифтов
             const TNR_7 = { font: "Times New Roman", size: 14 }; 
             const TNR_10 = { font: "Times New Roman", size: 20 }; 
-            const TNR_10_ITALIC = { font: "Times New Roman", size: 20, italic: true };
-            const TNR_10_BOLD = { font: "Times New Roman", size: 20, bold: true };
+            const TNR_10_I = { font: "Times New Roman", size: 20, italic: true };
+            const TNR_10_B = { font: "Times New Roman", size: 20, bold: true };
             const TNR_12 = { font: "Times New Roman", size: 24 }; 
-            const TNR_12_BOLD = { font: "Times New Roman", size: 24, bold: true };
-            const TNR_12_ITALIC = { font: "Times New Roman", size: 24, italic: true };
-            const TNR_14_BOLD = { font: "Times New Roman", size: 28, bold: true };
+            const TNR_12_B = { font: "Times New Roman", size: 24, bold: true };
+            const TNR_14_B = { font: "Times New Roman", size: 28, bold: true };
 
             const introText = "Настоящий акт составлен по результатам визуального осмотра объекта оценки, без установления скрытых дефектов, детальных обмеров и технической инвентаризации объекта оценки. Каждый из участников осмотра имеет право: задавать эксперту вопросы, требовать пояснений по поводу применяемых во время осмотра технических и профессиональных терминов и методов осмотра; собственноручно вносить заявления и замечания в акт осмотра, а также приобщать заявления и замечания к акту осмотра, составленные на отдельных листах. Настоящий Акт составлен с учетом требований Федерального Закона «Об оценочной деятельности в Российской Федерации» № 135-ФЗ от 25 июля 1998 года, требований Стандартов оценки, обязательных к применению субъектами оценочной деятельности. Утвержденного Постановлением Правительства РФ от 06 июля 2001 года №519 и Федерального закона об оценочной деятельности в РФ от 29 июля 1998 года № 135-ФЗ, в соответствии с требованиями Федерального закона от 29 июля 1998 г. № 135-Ф3 «Об оценочной деятельности в Российской Федерации (в редакции от 14 ноября 2002 г.) и «Стандартов оценки, обязательных к применению субъектами оценочной деятельности в Российской Федерации», утвержденных постановлением Правительства РФ № 519 от 6 июля 2001 г. Федерального закона «О внесении изменений в ФЗ «Об оценочной деятельности в Российской Федерации» от 14 июля 2006 года. Утвержденного федерального стандарта оценки № 10040 Министерством экономического развития и торговли Российской Федерации от 20 июля 2007 г. № 256 Зарегистрированного в Минюсте РФ 22 августа 2007 г. № 10040, в соответствии с пунктом 5.2.5 Положения о Министерстве экономического развития и торговли Российской Федерации, утвержденного постановлением Правительства Российской Федерации от 27 августа 2004 года № 443 (Собрание законодательных актов Российской Федерации, 2004, № 36, ст. 3670; 2005, № 22, ст. 2121; 2006, № 11, ст. 1182; № 16, ст. 1743, ст. 1744; № 18, ст. 2005; №22, ст. 2333; № 32, ст. 3569, ст. 3578; 2007, № 22, ст.2642).";
 
             const children = [
                 new Paragraph({
                     children: [new TextRun({ text: `АКТ ОСМОТРА № ${document.getElementById('actNumber').value || '__________'}`, bold: true, size: 28, font: "Times New Roman" })],
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 150 }
+                    alignment: AlignmentType.CENTER, spacing: { after: 150 }
                 }),
                 new Paragraph({ children: [new TextRun({ text: introText, ...TNR_7 })], alignment: AlignmentType.BOTH, spacing: { after: 300 } }),
                 new Table({
@@ -494,30 +464,34 @@
                     borders: { top: {style: BorderStyle.NONE}, bottom: {style: BorderStyle.NONE}, left: {style: BorderStyle.NONE}, right: {style: BorderStyle.NONE}, insideHorizontal: {style: BorderStyle.NONE}, insideVertical: {style: BorderStyle.NONE}},
                     rows: [
                         new TableRow({ children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата и время осмотра: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('actDateTime').value.replace('T', ' '), ...TNR_10 })] })] }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата происшествия: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('incidentDate').value, ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата и время осмотра: ", ...TNR_10_B }), new TextRun({ text: document.getElementById('actDateTime').value.replace('T', ' '), ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Дата происшествия: ", ...TNR_10_B }), new TextRun({ text: document.getElementById('incidentDate').value, ...TNR_10 })] })] }),
                         ]}),
                         new TableRow({ children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Тип помещения: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('roomType').value, ...TNR_10 })] })] }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Площадь помещ: ", ...TNR_10_BOLD }), new TextRun({ text: (document.getElementById('totalArea').value || "____") + " м2", ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Тип помещения: ", ...TNR_10_B }), new TextRun({ text: document.getElementById('roomType').value, ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Общая площадь помещения: ", ...TNR_10_B }), new TextRun({ text: (document.getElementById('totalArea').value || "____") + " м2", ...TNR_10 })] })] }),
                         ]}),
                         new TableRow({ children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Адрес объекта: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('address').value, ...TNR_10 })] })] }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Год посл. ремонта: ", ...TNR_10_BOLD }), new TextRun({ text: document.getElementById('lastRepairYear').value, ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Адрес объекта: ", ...TNR_10_B }), new TextRun({ text: document.getElementById('address').value, ...TNR_10 })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Год посл. ремонта: ", ...TNR_10_B }), new TextRun({ text: document.getElementById('lastRepairYear').value, ...TNR_10 })] })] }),
                         ]})
                     ]
                 }),
                 new Paragraph({ text: "", spacing: { before: 200 } }),
-                new Paragraph({ children: [new TextRun({ text: "Участники осмотра:", ...TNR_10_BOLD, underline: {} })] }),
+                new Paragraph({ children: [new TextRun({ text: "Участники осмотра:", ...TNR_10_B, underline: {} })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Эксперты: ${document.getElementById('expertName').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Собственник/заказчик/арендатор: ${document.getElementById('ownerName').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Другие заинтересованные лица: ${document.getElementById('others').value} ________________ подпись`, ...TNR_10 })] }),
                 new Paragraph({ text: "", spacing: { before: 200 } }),
             ];
 
-            const addPartToChildren = (label, val, sVal, dmg, req) => {
-                const sStr = sVal ? ` (S= ${sVal} м2)` : "";
-                children.push(new Paragraph({ children: [new TextRun({ text: label + ": ", ...TNR_12_BOLD }), new TextRun({ text: (val || "не указано") + sStr, ...TNR_12 })] }));
+            const addPart = (label, val, sVal, pVal, dmg, req) => {
+                let dims = [];
+                if (sVal) dims.push(`S= ${sVal} м2`);
+                if (pVal) dims.push(`P= ${pVal} м.п.`);
+                const dimsStr = dims.length > 0 ? ` (${dims.join(', ')})` : "";
+                
+                children.push(new Paragraph({ children: [new TextRun({ text: label + ": ", ...TNR_12_B }), new TextRun({ text: (val || "не указано") + dimsStr, ...TNR_12 })] }));
                 children.push(new Paragraph({ children: [new TextRun({ text: `Описание повреждений: ${dmg || "не обнаружено"}`, ...TNR_12 })] }));
                 children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${req || "не требуется"}`, ...TNR_12 })] }));
             };
@@ -526,68 +500,84 @@
                 const id = card.id.split('_').pop();
                 children.push(new Paragraph({ 
                     alignment: AlignmentType.CENTER,
-                    children: [new TextRun({ text: `Помещение: ${card.querySelector('.r-name').value || '___'}, S= ${card.querySelector('.r-area').value || '___'} м2, H= ${card.querySelector('.r-height').value || '___'} м`, ...TNR_14_BOLD })],
+                    children: [new TextRun({ text: `Помещение: ${card.querySelector('.r-name').value || '___'}, S= ${card.querySelector('.r-area').value || '___'} м2, H= ${card.querySelector('.r-height').value || '___'} м`, ...TNR_14_B })],
                     spacing: { before: 200, after: 120 }
                 }));
                 
-                addPartToChildren("Потолок", document.getElementById(`r_ceil_${id}`).value, document.getElementById(`r_ceil_s_${id}`).value, document.getElementById(`r_ceil_dmg_${id}`).value, document.getElementById(`r_ceil_req_${id}`).value);
-                addPartToChildren("Стены", document.getElementById(`r_walls_${id}`).value, document.getElementById(`r_walls_s_${id}`).value, document.getElementById(`r_walls_dmg_${id}`).value, document.getElementById(`r_walls_req_${id}`).value);
-                addPartToChildren("Пол", document.getElementById(`r_floor_${id}`).value, document.getElementById(`r_floor_s_${id}`).value, document.getElementById(`r_floor_dmg_${id}`).value, document.getElementById(`r_floor_req_${id}`).value);
+                ['ceil','walls','floor'].forEach(k => {
+                    const l = k==='ceil'?'Потолок':k==='walls'?'Стены':'Пол';
+                    addPart(
+                        l, 
+                        document.getElementById(`r_${k}_${id}`).value, 
+                        document.getElementById(`r_${k}_s_${id}`).value, 
+                        document.getElementById(`r_${k}_p_${id}`) ? document.getElementById(`r_${k}_p_${id}`).value : "",
+                        document.getElementById(`r_${k}_dmg_${id}`).value, 
+                        document.getElementById(`r_${k}_req_${id}`).value
+                    );
+                });
 
                 card.querySelectorAll('.extra-construct-item').forEach(ex => {
-                    const label = ex.querySelector('.ex-val').getAttribute('data-type-label');
-                    const val = ex.querySelector('.ex-val').value;
-                    const s = ex.querySelector('.ex-s').value;
-                    const dmg = ex.querySelector('.ex-dmg').value;
-                    const req = ex.querySelector('.ex-req').value;
-                    addPartToChildren(label, val, s, dmg, req);
+                    addPart(
+                        ex.querySelector('.ex-val').getAttribute('data-type-label'), 
+                        ex.querySelector('.ex-val').value, 
+                        ex.querySelector('.ex-s').value, 
+                        ex.querySelector('.ex-p').value,
+                        ex.querySelector('.ex-dmg').value, 
+                        ex.querySelector('.ex-req').value
+                    );
+                });
+
+                // Вывод уточнений с желтым маркером
+                card.querySelectorAll('.r-note').forEach(n => {
+                    if(n.value.trim()){
+                        children.push(new Paragraph({ 
+                            children: [new TextRun({ text: "УТОЧНЕНИЕ ДЛЯ СМЕТЧИКА: " + n.value, ...TNR_10_B, highlight: "yellow" })],
+                            spacing: { before: 120, after: 120 }
+                        }));
+                    }
                 });
             });
 
             const items = document.querySelectorAll('.item-card');
             if(items.length > 0) {
-                children.push(new Paragraph({ children: [new TextRun({ text: "Поврежденное имущество:", ...TNR_14_BOLD })], spacing: {before: 300} }));
+                children.push(new Paragraph({ children: [new TextRun({ text: "Поврежденное имущество:", ...TNR_14_B })], spacing: {before: 300, after: 120} }));
                 items.forEach(card => {
-                    children.push(new Paragraph({ children: [new TextRun({ text: card.querySelector('.i-name').value, ...TNR_12_BOLD })] }));
-                    children.push(new Paragraph({ children: [new TextRun({ text: `Повреждения: ${card.querySelector('.i-dmg').value}`, ...TNR_12 })] }));
-                    children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${card.querySelector('.i-req').value}`, ...TNR_12 })] }));
+                    children.push(new Paragraph({ children: [new TextRun({ text: card.querySelector('.i-name').value || 'Наименование не указано', ...TNR_12_B })] }));
+                    children.push(new Paragraph({ children: [new TextRun({ text: `Описание повреждений: ${card.querySelector('.i-dmg').value || 'не обнаружено'}`, ...TNR_12 })] }));
+                    children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${card.querySelector('.i-req').value || 'не требуется'}`, ...TNR_12 })] }));
                 });
             }
 
-            // Финальные фразы
+            const systems = document.querySelectorAll('.system-card');
+            if(systems.length > 0) {
+                children.push(new Paragraph({ children: [new TextRun({ text: "Инженерные коммуникации:", ...TNR_14_B })], spacing: {before: 300, after: 120} }));
+                systems.forEach(card => {
+                    children.push(new Paragraph({ children: [new TextRun({ text: card.querySelector('.s-name').value || 'Наименование не указано', ...TNR_12_B })] }));
+                    children.push(new Paragraph({ children: [new TextRun({ text: `Описание повреждений: ${card.querySelector('.s-dmg').value || 'не обнаружено'}`, ...TNR_12 })] }));
+                    children.push(new Paragraph({ children: [new TextRun({ text: `Требуется: ${card.querySelector('.s-req').value || 'не требуется'}`, ...TNR_12 })] }));
+                });
+            }
+
             children.push(new Paragraph({ text: "", spacing: { before: 200 } }));
-            children.push(new Paragraph({ children: [new TextRun({ text: "*Требуются дополнительные работы: профессиональный клининг, сушка помещения, сбор, вынос и вывоз строительного мусора, пр. сопутствующие работы.", ...TNR_10_ITALIC })] }));
+            children.push(new Paragraph({ children: [new TextRun({ text: "*Требуются дополнительные работы: профессиональный клининг, сушка помещения, сбор, вынос и вывоз строительного мусора, пр. сопутствующие работы.", ...TNR_10_I })] }));
             children.push(new Paragraph({ 
-                children: [new TextRun({ text: "*Возможны скрытые дефекты, которые потребуют дополнительного расчета стоимости работ и материалов, необходимых для устранения этих дефектов.", ...TNR_10_ITALIC })],
-                spacing: { after: 240 } // Интервал 12пт (в docx 1пт = 20 ед, 12пт = 240)
+                children: [new TextRun({ text: "*Возможны скрытые дефекты, которые потребуют дополнительного расчета стоимости работ и материалов, необходимых для устранения этих дефектов.", ...TNR_10_I })],
+                spacing: { after: 240 }
             }));
             children.push(new Paragraph({ 
                 alignment: AlignmentType.RIGHT, 
-                children: [new TextRun({ text: `*Вся документарно неподтвержденная информация записана со слов собственника ________________ подпись`, ...TNR_10_ITALIC })] 
+                children: [new TextRun({ text: `*Вся документарно неподтвержденная информация записана со слов собственника ________________ подпись`, ...TNR_10_I })] 
             }));
 
-            try {
-                const doc = new Document({ 
-                    sections: [{ 
-                        properties: {
-                            page: {
-                                margin: {
-                                    top: 1134,    // 2 см (1 см = 567 ед)
-                                    bottom: 1134, // 2 см
-                                    left: 1417,   // 2.5 см
-                                    right: 567    // 1 см
-                                }
-                            }
-                        },
-                        children: children 
-                    }] 
-                });
-                const blob = await Packer.toBlob(doc);
-                saveAs(blob, `Акт_осмотра_${document.getElementById('actNumber').value || 'документ'}.docx`);
-            } catch (err) { 
-                console.error(err);
-                alert("Ошибка при создании Word."); 
-            }
+            const doc = new Document({ 
+                sections: [{ 
+                    properties: {
+                        page: { margin: { top: 1134, bottom: 1134, left: 1417, right: 567 } }
+                    },
+                    children: children 
+                }] 
+            });
+            Packer.toBlob(doc).then(blob => saveAs(blob, `Акт_осмотра_${document.getElementById('actNumber').value}.docx`));
         }
     </script>
 </body>
