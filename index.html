@@ -45,7 +45,6 @@
 <body class="p-4 pb-32">
     <div id="saveIndicator" class="save-indicator">Данные сохранены ✓</div>
 
-    <!-- Модалка для выбора вариантов -->
     <div id="optionsModal" class="options-modal">
         <div class="modal-content shadow-2xl">
             <h3 id="modalTitle" class="text-lg font-bold mb-4">Выберите варианты</h3>
@@ -64,7 +63,6 @@
     <div class="max-w-md mx-auto">
         <h1 class="text-2xl font-bold text-center mb-6 text-blue-700">Акт осмотра (Черновик)</h1>
 
-        <!-- Основная информация -->
         <div class="card">
             <div class="section-title">Основная информация</div>
             <div class="space-y-3">
@@ -106,7 +104,6 @@
             </div>
         </div>
 
-        <!-- Участники -->
         <div class="card">
             <div class="section-title">Участники осмотра</div>
             <div class="space-y-3">
@@ -157,11 +154,19 @@
         let extraCount = 0;
 
         const DATA_LISTS = {
-            ceiling: ["Натяжной потолок", "Подвесной потолок ГКЛ", "Многоуровневый натяжной потолок", "Листы ГКЛ", "В/эмульсионная окраска", "шпатлевка", "штукатурка", "Реечный потолок (алюминий)", "Реечный потолок (ПВХ)", "плинтус пенопластовый/полиуретановый", "карнизы декоративные", "лепнина"],
-            walls: ["Обои виниловые на флизелиновой основе", "Обои бумажные на флизелиновой основе", "Обои бумажные", "Обои флизелиновые", "В/эмульсионная окраска", "шпатлевка", "штукатурка", "Декоративная штукатурка", "Стеновые панели ПВХ", "Флизелин малярный под покраску"],
-            floor: ["Ламинат", "паркет штучный", "Паркет дубовый", "Паркетная доска", "Паркет \"Английская елка\"", "паркет \"Французская ёлка\"", "Инженерная доска", "Кварцвинил", "подложка листовая", "подложка", "подложка рулонная", "фанера", "стяжка цементно-песчаная", "наливной пол", "линолеум", "плинтус ПВХ", "плинтус МДФ", "плинтус пенопластовый/полиуретановый", "плинтус деревянный", "лаги"],
-            dmg: ["вздутие", "деформация", "отслоение", "образование плесени", "подтеки", "следы залития", "глубокая вытяжка полотна", "разрыв полотна", "деформация листов ГКЛ"],
-            req: ["Замена отделочного покрытия", "антигрибковая обработка"]
+            ceiling: ["Натяжной потолок", "Подвесной потолок ГКЛ", "Многоуровневый натяжной потолок", "Листы ГКЛ", "В/эмульсионная окраска", "шпатлевка", "штукатурка", "Реечный потолок (алюминий)", "Реечный потолок (ПВХ)", "плинтус пенопластовый/полиуретановый", "карнизы декоративные", "лепнина", "плитка потолочная пенопластовая", "плитка потолочная типа \"Армстронг\"", "ПВХ панели"],
+            walls: ["Обои виниловые на флизелиновой основе", "Обои бумажные на флизелиновой основе", "Обои бумажные", "Обои флизелиновые", "В/эмульсионная окраска", "шпатлевка", "штукатурка", "Декоративная штукатурка", "Стеновые панели ПВХ", "Флизелин малярный под покраску", "плитка керамическая", "керамогранит", "ПВХ панели"],
+            floor: ["Ламинат", "паркет штучный", "Паркет дубовый", "Паркетная доска", "Паркет \"Английская елка\"", "паркет \"Французская ёлка\"", "Инженерная доска", "Кварцвинил", "подложка листовая", "подложка", "подложка рулонная", "фанера", "стяжка цементно-песчаная", "наливной пол", "линолеум", "плинтус ПВХ", "плинтус МДФ", "плинтус пенопластовый/полиуретановый", "плинтус деревянный", "лаги", "плитка керамическая", "керамогранит"],
+            dmg: ["вздутие", "деформация", "отслоение", "образование плесени", "подтеки", "следы залития", "глубокая вытяжка полотна", "разрыв полотна", "деформация листов ГКЛ", "отслоение элементов плитки", "размыв затирки"],
+            req: ["Замена отделочного покрытия", "антигрибковая обработка"],
+            // Новые списки для Имущества
+            item_names: ["шкаф 1 створчатый распашной", "шкаф 2-х створчатый распашной", "шкаф 3-х створчатый распашной", "шкаф 4-х створчатый распашной", "шкаф-купе", "шкаф-купе 2-х створчатый", "шкаф-купе 3-х створчатый", "шкаф-купе 4-х створчатый", "кровать односпальная", "кровать 2-х спальная", "тумба под ТВ", "комод", "сервант", "мебельный гарнитур типа \"стенка\"", "тумба прикроватная", "обувница", "шкафчик под раковиной", "шкафчик с зеркалом на раковиной", "кухонный гарнитур ( __ м.пог.)", "матрас (*размер*)"],
+            item_dmg: ["вздутие", "деформация", "образование плесени", "пятна", "следы залития", "затхлый запах (запах сырости)"],
+            item_req: ["замена", "химчистка"],
+            // Новые списки для Коммуникаций
+            sys_names: ["э/проводка в квартире"],
+            sys_dmg: ["следы залития", "короткое замыкание", "искрение проводов", "потеря функциональных свойств"],
+            sys_req: ["замена э/проводки", "диагностика э/проводки"]
         };
 
         function openModal(targetId, type, title) {
@@ -238,11 +243,11 @@
                 div.querySelector('.r-area').value = data.area || '';
                 div.querySelector('.r-height').value = data.height || '';
                 ['ceil','walls','floor'].forEach(k => {
-                    document.getElementById(`r_${k}_${id}`).value = data[k] || '';
-                    document.getElementById(`r_${k}_s_${id}`).value = data[k+'S'] || '';
+                    if(document.getElementById(`r_${k}_${id}`)) document.getElementById(`r_${k}_${id}`).value = data[k] || '';
+                    if(document.getElementById(`r_${k}_s_${id}`)) document.getElementById(`r_${k}_s_${id}`).value = data[k+'S'] || '';
                     if(document.getElementById(`r_${k}_p_${id}`)) document.getElementById(`r_${k}_p_${id}`).value = data[k+'P'] || '';
-                    document.getElementById(`r_${k}_dmg_${id}`).value = data[k+'Dmg'] || '';
-                    document.getElementById(`r_${k}_req_${id}`).value = data[k+'Req'] || '';
+                    if(document.getElementById(`r_${k}_dmg_${id}`)) document.getElementById(`r_${k}_dmg_${id}`).value = data[k+'Dmg'] || '';
+                    if(document.getElementById(`r_${k}_req_${id}`)) document.getElementById(`r_${k}_req_${id}`).value = data[k+'Req'] || '';
                 });
                 if (data.extras) data.extras.forEach(ex => addExtraToRoom(id, ex.label, (ex.label==='Потолок'?'ceiling':ex.label==='Стены'?'walls':'floor'), ex));
                 if (data.notes) data.notes.forEach(n => addNoteToRoom(id, n));
@@ -343,36 +348,86 @@
 
         function addItem(data = null) {
             itemCount++;
+            const id = itemCount;
             const div = document.createElement('div');
             div.className = 'card border-l-4 border-orange-500 relative item-card';
             div.innerHTML = `
                 <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
-                <div class="section-title text-orange-700">Имущество №${itemCount}</div>
+                <div class="section-title text-orange-700">Имущество №${id}</div>
                 <div class="space-y-3">
-                    <div><label>Название</label><input type="text" class="i-name auto-save"></div>
-                    <div><label>Описание повреждений</label><textarea class="i-dmg auto-save"></textarea></div>
-                    <div><label>Требуется</label><textarea class="i-req auto-save"></textarea></div>
+                    <div>
+                        <label>Название</label>
+                        <input type="text" id="i_name_${id}" class="i-name auto-save hidden">
+                        <button id="btn_i_name_${id}" onclick="openModal('i_name_${id}', 'item_names', 'Название имущества')" class="multi-select-btn">Выбрать...</button>
+                    </div>
+                    <div>
+                        <label>Описание повреждений</label>
+                        <input type="text" id="i_dmg_${id}" class="i-dmg auto-save hidden">
+                        <button id="btn_i_dmg_${id}" onclick="openModal('i_dmg_${id}', 'item_dmg', 'Повреждения')" class="multi-select-btn">Выбрать...</button>
+                    </div>
+                    <div>
+                        <label>Требуется</label>
+                        <input type="text" id="i_req_${id}" class="i-req auto-save hidden">
+                        <button id="btn_i_req_${id}" onclick="openModal('i_req_${id}', 'item_req', 'Работы')" class="multi-select-btn">Выбрать...</button>
+                    </div>
                 </div>
             `;
             document.getElementById('itemsContainer').appendChild(div);
-            if(data) { div.querySelector('.i-name').value = data.name; div.querySelector('.i-dmg').value = data.dmg; div.querySelector('.i-req').value = data.req; }
+            
+            const update = (fid, bid) => {
+                const inp = document.getElementById(fid);
+                const btn = document.getElementById(bid);
+                setInterval(() => { if(inp) btn.innerText = inp.value || "Выбрать..."; }, 500);
+            };
+            update(`i_name_${id}`, `btn_i_name_${id}`); update(`i_dmg_${id}`, `btn_i_dmg_${id}`); update(`i_req_${id}`, `btn_i_req_${id}`);
+
+            if(data) { 
+                document.getElementById(`i_name_${id}`).value = data.name || ''; 
+                document.getElementById(`i_dmg_${id}`).value = data.dmg || ''; 
+                document.getElementById(`i_req_${id}`).value = data.req || ''; 
+            }
         }
 
         function addSystem(data = null) {
             systemCount++;
+            const id = systemCount;
             const div = document.createElement('div');
             div.className = 'card border-l-4 border-blue-500 relative system-card';
             div.innerHTML = `
                 <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">✕</button>
-                <div class="section-title text-blue-700">Инженерные коммуникации №${systemCount}</div>
+                <div class="section-title text-blue-700">Инженерные коммуникации №${id}</div>
                 <div class="space-y-3">
-                    <div><label>Название</label><input type="text" class="s-name auto-save" placeholder="Например: Радиатор отопления"></div>
-                    <div><label>Описание повреждений</label><textarea class="s-dmg auto-save"></textarea></div>
-                    <div><label>Требуется</label><textarea class="s-req auto-save"></textarea></div>
+                    <div>
+                        <label>Название</label>
+                        <input type="text" id="s_name_${id}" class="s-name auto-save hidden">
+                        <button id="btn_s_name_${id}" onclick="openModal('s_name_${id}', 'sys_names', 'Название')" class="multi-select-btn">Выбрать...</button>
+                    </div>
+                    <div>
+                        <label>Описание повреждений</label>
+                        <input type="text" id="s_dmg_${id}" class="s-dmg auto-save hidden">
+                        <button id="btn_s_dmg_${id}" onclick="openModal('s_dmg_${id}', 'sys_dmg', 'Повреждения')" class="multi-select-btn">Выбрать...</button>
+                    </div>
+                    <div>
+                        <label>Требуется</label>
+                        <input type="text" id="s_req_${id}" class="s-req auto-save hidden">
+                        <button id="btn_s_req_${id}" onclick="openModal('s_req_${id}', 'sys_req', 'Работы')" class="multi-select-btn">Выбрать...</button>
+                    </div>
                 </div>
             `;
             document.getElementById('systemsContainer').appendChild(div);
-            if(data) { div.querySelector('.s-name').value = data.name; div.querySelector('.s-dmg').value = data.dmg; div.querySelector('.s-req').value = data.req; }
+
+            const update = (fid, bid) => {
+                const inp = document.getElementById(fid);
+                const btn = document.getElementById(bid);
+                setInterval(() => { if(inp) btn.innerText = inp.value || "Выбрать..."; }, 500);
+            };
+            update(`s_name_${id}`, `btn_s_name_${id}`); update(`s_dmg_${id}`, `btn_s_dmg_${id}`); update(`s_req_${id}`, `btn_s_req_${id}`);
+
+            if(data) { 
+                document.getElementById(`s_name_${id}`).value = data.name || ''; 
+                document.getElementById(`s_dmg_${id}`).value = data.dmg || ''; 
+                document.getElementById(`s_req_${id}`).value = data.req || ''; 
+            }
         }
 
         function saveToLocalStorage() {
@@ -393,9 +448,9 @@
                 const id = card.id.split('_').pop();
                 const roomData = {
                     name: card.querySelector('.r-name').value, area: card.querySelector('.r-area').value, height: card.querySelector('.r-height').value,
-                    ceil: document.getElementById(`r_ceil_${id}`).value, ceilS: document.getElementById(`r_ceil_s_${id}`).value, ceilP: document.getElementById(`r_ceil_p_${id}`).value, ceilDmg: document.getElementById(`r_ceil_dmg_${id}`).value, ceilReq: document.getElementById(`r_ceil_req_${id}`).value,
-                    walls: document.getElementById(`r_walls_${id}`).value, wallsS: document.getElementById(`r_walls_s_${id}`).value, wallsP: document.getElementById(`r_walls_p_${id}`).value, wallsDmg: document.getElementById(`r_walls_dmg_${id}`).value, wallsReq: document.getElementById(`r_walls_req_${id}`).value,
-                    floor: document.getElementById(`r_floor_${id}`).value, floorS: document.getElementById(`r_floor_s_${id}`).value, floorP: document.getElementById(`r_floor_p_${id}`).value, floorDmg: document.getElementById(`r_floor_dmg_${id}`).value, floorReq: document.getElementById(`r_floor_req_${id}`).value,
+                    ceil: document.getElementById(`r_ceil_${id}`)?.value || '', ceilS: document.getElementById(`r_ceil_s_${id}`)?.value || '', ceilP: document.getElementById(`r_ceil_p_${id}`)?.value || '', ceilDmg: document.getElementById(`r_ceil_dmg_${id}`)?.value || '', ceilReq: document.getElementById(`r_ceil_req_${id}`)?.value || '',
+                    walls: document.getElementById(`r_walls_${id}`)?.value || '', wallsS: document.getElementById(`r_walls_s_${id}`)?.value || '', wallsP: document.getElementById(`r_walls_p_${id}`)?.value || '', wallsDmg: document.getElementById(`r_walls_dmg_${id}`)?.value || '', wallsReq: document.getElementById(`r_walls_req_${id}`)?.value || '',
+                    floor: document.getElementById(`r_floor_${id}`)?.value || '', floorS: document.getElementById(`r_floor_s_${id}`)?.value || '', floorP: document.getElementById(`r_floor_p_${id}`)?.value || '', floorDmg: document.getElementById(`r_floor_dmg_${id}`)?.value || '', floorReq: document.getElementById(`r_floor_req_${id}`)?.value || '',
                     extras: [], notes: []
                 };
                 card.querySelectorAll('.extra-construct-item').forEach(ex => {
@@ -411,8 +466,18 @@
                 card.querySelectorAll('.r-note').forEach(n => roomData.notes.push(n.value));
                 formData.rooms.push(roomData);
             });
-            document.querySelectorAll('.item-card').forEach(i => formData.items.push({ name: i.querySelector('.i-name').value, dmg: i.querySelector('.i-dmg').value, req: i.querySelector('.i-req').value }));
-            document.querySelectorAll('.system-card').forEach(s => formData.systems.push({ name: s.querySelector('.s-name').value, dmg: s.querySelector('.s-dmg').value, req: s.querySelector('.s-req').value }));
+            document.querySelectorAll('.item-card').forEach(i => {
+                const nameInp = i.querySelector('.i-name');
+                const dmgInp = i.querySelector('.i-dmg');
+                const reqInp = i.querySelector('.i-req');
+                formData.items.push({ name: nameInp.value, dmg: dmgInp.value, req: reqInp.value });
+            });
+            document.querySelectorAll('.system-card').forEach(s => {
+                const nameInp = s.querySelector('.s-name');
+                const dmgInp = s.querySelector('.s-dmg');
+                const reqInp = s.querySelector('.s-req');
+                formData.systems.push({ name: nameInp.value, dmg: dmgInp.value, req: reqInp.value });
+            });
             localStorage.setItem('damage_act_draft_v3', JSON.stringify(formData));
             const ind = document.getElementById('saveIndicator'); ind.style.display = 'block'; setTimeout(() => ind.style.display='none', 800);
         }
@@ -442,7 +507,6 @@
             const docxLib = window.docx;
             const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docxLib;
 
-            // Стили шрифтов
             const TNR_7 = { font: "Times New Roman", size: 14 }; 
             const TNR_10 = { font: "Times New Roman", size: 20 }; 
             const TNR_10_I = { font: "Times New Roman", size: 20, italic: true };
@@ -451,7 +515,7 @@
             const TNR_12_B = { font: "Times New Roman", size: 24, bold: true };
             const TNR_14_B = { font: "Times New Roman", size: 28, bold: true };
 
-            const introText = "Настоящий акт составлен по результатам визуального осмотра объекта оценки, без установления скрытых дефектов, детальных обмеров и технической инвентаризации объекта оценки. Каждый из участников осмотра имеет право: задавать эксперту вопросы, требовать пояснений по поводу применяемых во время осмотра технических и профессиональных терминов и методов осмотра; собственноручно вносить заявления и замечания в акт осмотра, а также приобщать заявления и замечания к акту осмотра, составленные на отдельных листах. Настоящий Акт составлен с учетом требований Федерального Закона «Об оценочной деятельности в Российской Федерации» № 135-ФЗ от 25 июля 1998 года, требований Стандартов оценки, обязательных к применению субъектами оценочной деятельности. Утвержденного Постановлением Правительства РФ от 06 июля 2001 года №519 и Федерального закона об оценочной деятельности в РФ от 29 июля 1998 года № 135-ФЗ, в соответствии с требованиями Федерального закона от 29 июля 1998 г. № 135-Ф3 «Об оценочной деятельности в Российской Федерации (в редакции от 14 ноября 2002 г.) и «Стандартов оценки, обязательных к применению субъектами оценочной деятельности в Российской Федерации», утвержденных постановлением Правительства РФ № 519 от 6 июля 2001 г. Федерального закона «О внесении изменений в ФЗ «Об оценочной деятельности в Российской Федерации» от 14 июля 2006 года. Утвержденного федерального стандарта оценки № 10040 Министерством экономического развития и торговли Российской Федерации от 20 июля 2007 г. № 256 Зарегистрированного в Минюсте РФ 22 августа 2007 г. № 10040, в соответствии с пунктом 5.2.5 Положения о Министерстве экономического развития и торговли Российской Федерации, утвержденного постановлением Правительства Российской Федерации от 27 августа 2004 года № 443 (Собрание законодательных актов Российской Федерации, 2004, № 36, ст. 3670; 2005, № 22, ст. 2121; 2006, № 11, ст. 1182; № 16, ст. 1743, ст. 1744; № 18, ст. 2005; №22, ст. 2333; № 32, ст. 3569, ст. 3578; 2007, № 22, ст.2642).";
+            const introText = "Настоящий акт составлен по результатам визуального осмотра объекта оценки, без установления скрытых дефектов, детальных обмеров и технической инвентаризации объекта оценки. Осмотр произведён с соблюдением требований законодательства Российской Федерации об оценочной деятельности, в том числе Федерального закона №135-ФЗ «Об оценочной деятельности в Российской Федерации» и федеральных стандартов оценки.";
 
             const children = [
                 new Paragraph({
@@ -508,11 +572,11 @@
                     const l = k==='ceil'?'Потолок':k==='walls'?'Стены':'Пол';
                     addPart(
                         l, 
-                        document.getElementById(`r_${k}_${id}`).value, 
-                        document.getElementById(`r_${k}_s_${id}`).value, 
-                        document.getElementById(`r_${k}_p_${id}`) ? document.getElementById(`r_${k}_p_${id}`).value : "",
-                        document.getElementById(`r_${k}_dmg_${id}`).value, 
-                        document.getElementById(`r_${k}_req_${id}`).value
+                        document.getElementById(`r_${k}_${id}`)?.value || '', 
+                        document.getElementById(`r_${k}_s_${id}`)?.value || '', 
+                        document.getElementById(`r_${k}_p_${id}`)?.value || '',
+                        document.getElementById(`r_${k}_dmg_${id}`)?.value || '', 
+                        document.getElementById(`r_${k}_req_${id}`)?.value || ''
                     );
                 });
 
@@ -527,7 +591,6 @@
                     );
                 });
 
-                // Вывод уточнений с желтым маркером
                 card.querySelectorAll('.r-note').forEach(n => {
                     if(n.value.trim()){
                         children.push(new Paragraph({ 
